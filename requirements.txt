@@ -1,2 +1,5 @@
 streamlit
-pandas
+edge-tts
+moviepy
+requests
+
