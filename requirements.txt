@@ -3,3 +3,6 @@ moviepy==1.0.3
 gTTS
 Pillow
 numpy
+arabic_reshaper
+python-bidi
+
