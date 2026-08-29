@@ -1,7 +1,4 @@
 streamlit
-edge-tts
 moviepy==1.0.3
-requests
-Pillow
-arabic-reshaper
-python-bidi
+gTTS
+
