@@ -1,12 +1,8 @@
 streamlit
 edge-tts
-moviepy==1.0.3
+moviepy
 requests
 Pillow
 arabic-reshaper
 python-bidi
-google-generativeai
-
-
-
 
