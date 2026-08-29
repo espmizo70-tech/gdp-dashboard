@@ -5,7 +5,22 @@ import requests
 import edge_tts
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
-from moviepy.editor import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips, AudioArrayClip
+
+# استيراد متوافق مع جميع إصدارات MoviePy
+try:
+    from moviepy.editor import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips, AudioArrayClip
+except ImportError:
+    try:
+        from moviepy import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips
+        try:
+            from moviepy import AudioArrayClip
+        except ImportError:
+            from moviepy.audio.AudioClip import AudioArrayClip
+    except ImportError:
+        from moviepy.video.VideoClip import ImageClip
+        from moviepy.audio.io.AudioFileClip import AudioFileClip
+        from moviepy.audio.AudioClip import CompositeAudioClip, AudioArrayClip
+        from moviepy.video.compositing.concatenate import concatenate_videoclips
 
 # دعم اللغة العربية
 try:
@@ -117,11 +132,10 @@ def fetch_image(prompt, output_img):
     with open(output_img, "wb") as f:
         f.write(res.content)
 
-# إنتاج نغمة خلفية بسيطة خفيفة تلقائياً بدون ملفات خارجية
+# إنتاج نغمة خلفية خفيفة تلقائياً
 def make_simple_bgm(duration):
     fps = 44100
     t = np.linspace(0, duration, int(fps * duration), False)
-    # توليد نغمة خلفية هادئة ناعمة
     note = 0.03 * np.sin(2 * np.pi * 220 * t) * np.exp(-t % 1)
     audio_array = np.vstack((note, note)).T
     return AudioArrayClip(audio_array, fps=fps)
@@ -151,7 +165,7 @@ if st.button("🚀 إنتاج الفيديو النهائي"):
                 audio_clip = AudioFileClip(audio_file)
                 img_clip = ImageClip(final_img).set_duration(audio_clip.duration).set_audio(audio_clip)
                 
-                # إضافة حركة زوم ناعمة
+                # حركة زوم ناعمة
                 img_clip = img_clip.resize(lambda t: 1 + 0.07 * (t / audio_clip.duration))
                 clips.append(img_clip)
                 
@@ -160,7 +174,6 @@ if st.button("🚀 إنتاج الفيديو النهائي"):
             st.write("🎞️ جاري رندر وتجميع الفيديو مع الموسيقى...")
             final_video = concatenate_videoclips(clips, method="compose")
             
-            # دمج الموسيقى إن تم اختيارها
             if bgm_option:
                 bgm_clip = make_simple_bgm(final_video.duration)
                 combined_audio = CompositeAudioClip([final_video.audio, bgm_clip])
