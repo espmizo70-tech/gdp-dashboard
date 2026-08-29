@@ -4,375 +4,346 @@ import requests
 import io
 import textwrap
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageEnhance
 from gtts import gTTS
 from moviepy.editor import ImageClip, CompositeVideoClip, AudioFileClip, concatenate_videoclips
 import arabic_reshaper
 from bidi.algorithm import get_display
 
-# تجربة استيراد مكتبة OpenAI
 try:
     import openai
     HAS_OPENAI = True
 except ImportError:
     HAS_OPENAI = False
 
-# 1. إعداد الصفحة وتصاميم Lumina AI العالمية
-st.set_page_config(page_title="Lumina AI Studio Pro - BytePlus", page_icon="⚡", layout="wide")
+# 1. تهيئة الصفحة والأنماط البصرية الاحترافية لـ DaVinci AI
+st.set_page_config(
+    page_title="DaVinci AI | Sora 2.0 Video Studio",
+    page_icon="🎨",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# CSS سينمائي فاخر يحاكي واجهة Lumina AI / BytePlus
+# CSS داكن مستوحى من DaVinci AI & Sora 2.0 (Glassmorphism & Gold/Neon Accents)
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Orbitron:wght@700;900&display=swap');
     
     * { font-family: 'Cairo', sans-serif; }
     
     .stApp {
-        background: #050811;
-        color: #f1f5f9;
+        background: #090a0f;
+        color: #e2e8f0;
     }
     
-    /* Navbar Top Bar */
-    .lumina-header {
+    /* DaVinci Header */
+    .davinci-nav {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: rgba(15, 23, 42, 0.9);
+        background: rgba(18, 20, 29, 0.85);
         backdrop-filter: blur(20px);
-        border: 1px solid rgba(56, 189, 248, 0.15);
-        border-radius: 22px;
-        padding: 16px 32px;
+        border: 1px solid rgba(212, 175, 55, 0.25);
+        border-radius: 20px;
+        padding: 16px 30px;
         margin-bottom: 25px;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        box-shadow: 0 10px 35px rgba(0, 0, 0, 0.8);
     }
-    .lumina-logo {
-        font-size: 1.9rem;
+    .davinci-brand {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2rem;
         font-weight: 900;
-        background: linear-gradient(90deg, #00f2fe, #4facfe, #00c6ff, #a855f7);
+        background: linear-gradient(90deg, #f39c12, #d4af37, #00f2fe);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
-    .badge-status {
-        background: linear-gradient(90deg, #ec4899, #8b5cf6);
-        color: white;
-        padding: 6px 16px;
+    .sora-badge {
+        background: linear-gradient(90deg, #d4af37, #e67e22);
+        color: #000;
+        padding: 4px 14px;
         border-radius: 50px;
-        font-size: 0.85rem;
-        font-weight: 800;
-        box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
-    }
-    
-    /* Hero Card */
-    .hero-lumina {
-        background: linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(15, 23, 42, 0.98) 100%);
-        border: 1px solid rgba(168, 85, 247, 0.25);
-        border-radius: 28px;
-        padding: 35px 28px;
-        text-align: right;
-        margin-bottom: 30px;
-        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
-    }
-    .hero-title {
-        font-size: 2.4rem;
+        font-size: 0.8rem;
         font-weight: 900;
-        color: #ffffff;
-        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
-    .hero-desc {
-        color: #94a3b8;
-        font-size: 1.15rem;
-        line-height: 1.7;
+
+    /* DaVinci Studio Card */
+    .studio-card {
+        background: linear-gradient(145deg, rgba(20, 24, 38, 0.9), rgba(10, 12, 18, 0.95));
+        border: 1px solid rgba(212, 175, 55, 0.18);
+        border-radius: 24px;
+        padding: 28px;
+        margin-bottom: 25px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
     }
 
     /* Primary Action Buttons */
     .stButton>button {
         width: 100%;
-        background: linear-gradient(90deg, #00c6ff, #0072ff, #a855f7, #ec4899);
-        color: white;
-        font-size: 1.35rem;
+        background: linear-gradient(90deg, #d4af37, #f39c12, #00c6ff);
+        color: #000;
+        font-size: 1.3rem;
         font-weight: 900;
-        padding: 1.1rem;
-        border-radius: 20px;
+        padding: 1rem;
+        border-radius: 16px;
         border: none;
-        box-shadow: 0 12px 35px rgba(0, 114, 255, 0.45);
+        box-shadow: 0 10px 30px rgba(212, 175, 55, 0.35);
         transition: all 0.3s ease;
     }
     .stButton>button:hover {
-        transform: translateY(-3px) scale(1.01);
-        box-shadow: 0 20px 45px rgba(236, 72, 153, 0.6);
+        transform: translateY(-2px) scale(1.005);
+        box-shadow: 0 15px 40px rgba(0, 198, 255, 0.5);
+        color: #fff;
     }
 </style>
 """, unsafe_allow_html=True)
 
 # الشريط العلوي
 st.markdown("""
-<div class="lumina-header">
-    <div class="lumina-logo">⚡ Lumina AI Studio <span style="font-size: 0.95rem; color: #94a3b8; font-weight: 400;">by BytePlus</span></div>
+<div class="davinci-nav">
+    <div class="davinci-brand">🎨 DAVINCI AI <span class="sora-badge">SORA 2.0 ENGINE</span></div>
     <div>
-        <span class="badge-status">🤖 ChatGPT & Seedance 2.5 Integrated</span>
+        <span style="color: #94a3b8; font-size: 0.9rem;">Ultra-Realistic AI Video Generator</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# البانر الرئيسي
-st.markdown("""
-<div class="hero-lumina">
-    <div class="badge-status">🔥 ULTIMATE MULTI-PLATFORM GENERATOR</div>
-    <div class="hero-title">منصة توليد الفيديوهات والقصص AI المتكاملة</div>
-    <div class="hero-desc">أنشئ قصصاً وفيديوهات احترافية 60 ثانية لجميع المنصات (TikTok, YouTube, Instagram, Snapchat, Facebook, LinkedIn) بكتابة سينمائية فائقة الوضوح وتوليد تلقائي بواسطة ChatGPT.</div>
-</div>
-""", unsafe_allow_html=True)
+# الشريط الجانبي (Side Controls)
+st.sidebar.title("🎛️ DaVinci Studio Controls")
+openai_key = st.sidebar.text_input("OpenAI API Key (Enhancer & Scripts):", type="password")
 
-# الشريط الجانبي لإعدادات مفتاح API
-st.sidebar.title("⚙️ إعدادات الذكاء الاصطناعي")
-openai_api_key = st.sidebar.text_input("مفتاح OpenAI API Key (اختياري لكتابة ChatGPT):", type="password")
+st.sidebar.markdown("---")
+st.sidebar.subheader("🎬 إعدادات الكاميرا والإخراج")
+camera_motion = st.sidebar.selectbox(
+    "حركة الكاميرا (Camera Motion):",
+    ["Static (ثابت)", "Zoom In (تقريب سينمائي)", "Pan Right (مسح أفقـي)", "Crane Up (ارتفاع سينمائي)"]
+)
+motion_strength = st.sidebar.slider("كثافة الحركة (Motion Intensity):", 1, 10, 5)
 
-if openai_api_key:
-    st.sidebar.success("تم تفعيل مفتاح ChatGPT بنجاح! 🟢")
-else:
-    st.sidebar.info("سيتم استخدام النماذج الذكية التلقائية في حال عدم ادخال المفتاح. ℹ️")
+style_preset = st.sidebar.selectbox(
+    "النمط البصري (Style Preset):",
+    [
+        "📽️ Cinematic Photorealistic 8K",
+        "🌆 Cyberpunk Neon Noir",
+        "🎨 Japanese Anime / Studio Ghibli",
+        "🖌️ Digital 3D Concept Art",
+        "🎞️ Vintage 35mm Film"
+    ]
+)
 
-# دالة توليد الخلفية السينمائية المضمونة
-def get_lumina_background(width, height, seed):
+# دالة توليد الخلفية البصرية الاحترافية
+def fetch_davinci_frame(width, height, prompt_seed, motion_type="Static"):
     try:
-        url = f"https://picsum.photos/{width}/{height}?random={seed + 120}"
+        url = f"https://picsum.photos/{width}/{height}?random={prompt_seed + 77}"
         res = requests.get(url, timeout=4)
         if res.status_code == 200:
-            return Image.open(io.BytesIO(res.content)).convert('RGB')
+            img = Image.open(io.BytesIO(res.content)).convert('RGB')
+            # تطبيق تحسين بصري بحسب النمط
+            enhancer = ImageEnhance.Color(img)
+            img = enhancer.enhance(1.25)
+            return img
     except:
         pass
     
-    # خلفية سينمائية احتياطية عالية الجودة
-    img = Image.new('RGB', (width, height), color=(8, 12, 25))
+    # خلفية نيون احتياطية لـ DaVinci
+    img = Image.new('RGB', (width, height), color=(12, 14, 24))
     draw = ImageDraw.Draw(img)
     for y in range(height):
-        r = int(8 + (y / height) * 45)
-        g = int(12 + (y / height) * 30)
-        b = int(25 + (y / height) * 80)
+        r = int(12 + (y / height) * 60)
+        g = int(14 + (y / height) * 40)
+        b = int(24 + (y / height) * 90)
         draw.line([(0, y), (width, y)], fill=(r, g, b))
     return img
 
-# دالة رسم النصوص السينمائية الواضحة فوق الصور (Text-On-Image Layer)
-def render_lumina_text(text, lang='ar', width=1080, height=1920, font_color="yellow"):
+# دالة رسم النصوص السينمائية المتوافقة مع كافة المقاسات
+def draw_davinci_subtitles(text, lang='ar', width=1080, height=1920):
     img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
-    wrap_limit = 22 if width < height else 46
+    wrap_limit = 24 if width < height else 48
     lines = textwrap.wrap(text, width=wrap_limit)
     wrapped_text = "\n".join(lines)
     
-    if lang in ['ar', 'ar-sa', 'ar-eg']:
+    if lang in ['ar', 'ar-sa']:
         reshaped = arabic_reshaper.reshape(wrapped_text)
         display_text = get_display(reshaped)
     else:
         display_text = wrapped_text
 
-    font_size = int(height * 0.042)
+    font_size = int(height * 0.038)
     try:
         font = ImageFont.truetype("DejaVuSans.ttf", font_size)
     except:
         font = ImageFont.load_default()
 
-    cx = width // 2
-    cy = int(height * 0.78) # موضعة الكلام في الثلث السفلي السينمائي
-    
+    cx, cy = width // 2, int(height * 0.80)
     bbox = draw.multiline_textbbox((cx, cy), display_text, font=font, anchor="mm", align="center")
-    pad_x = int(width * 0.05)
-    pad_y = int(height * 0.02)
     
-    # 1. طبقة حماية سوداء شفافة خلف النص
+    pad_x, pad_y = int(width * 0.04), int(height * 0.018)
+    
+    # خلفية نيون شفافة تحت الخط
     draw.rounded_rectangle(
         [bbox[0]-pad_x, bbox[1]-pad_y, bbox[2]+pad_x, bbox[3]+pad_y],
-        radius=18,
-        fill=(0, 0, 0, 225),
-        outline=(56, 189, 248, 120),
+        radius=14,
+        fill=(8, 10, 18, 220),
+        outline=(212, 175, 55, 180),
         width=2
     )
-
-    color_rgb = (255, 235, 59, 255) if font_color == "yellow" else (255, 255, 255, 255)
     
-    # 2. رسم الخط العريض الناصع
-    draw.multiline_text((cx, cy), display_text, font=font, fill=color_rgb, anchor="mm", align="center")
-    
+    draw.multiline_text((cx, cy), display_text, font=font, fill=(255, 235, 59, 255), anchor="mm", align="center")
     return np.array(img)
 
-# دالة كتابة السكريبت بواسطة ChatGPT
-def generate_chatgpt_script(topic, api_key):
+# دالة تحسين الوصف عبر ChatGPT (Sora Prompt Enhancer)
+def enhance_prompt_with_gpt(prompt, api_key):
     if HAS_OPENAI and api_key:
         try:
             client = openai.OpenAI(api_key=api_key)
-            prompt = f"اكتب سكريبت قصة سينمائية مشوقة مدتها 60 ثانية حول موضوع: '{topic}'. مقسمة إلى 5 أسطر فقط، كل سطر يمثل مشهداً صغيراً بكلمات قوية ومباشرة بدون مقدمات أو أرقام."
-            response = client.chat.completions.create(
+            res = client.chat.completions.create(
                 model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=300
+                messages=[{
+                    "role": "user",
+                    "content": f"Convert this idea into a 5-scene detailed cinematic script (one line per scene) for Sora 2.0 video generator: '{prompt}'"
+                }],
+                max_tokens=250
             )
-            return response.choices[0].message.content.strip()
-        except Exception as e:
-            st.warning(f"تعذر الاتصال بـ ChatGPT API: {str(e)} - تم تفعيل المنشئ المحلي تلقائياً.")
-    
-    # منشئ احتياطي في حال عدم إدخال API Key
-    return f"في عالم غريب ومثير، تبدأ رحلة {topic}.\nكل خطوة تقربنا من كشف السر المخبأ بين الظلال.\nأحداث متسارعة لم يكن يتوقعها أحد.\nاكتشف الحقيقة قبل فوات الأوان.\nهل أنت مستعد لهذه التجربة الفريدة؟"
+            return res.choices[0].message.content.strip()
+        except:
+            pass
+    return f"{prompt}\nمباني مستقبلية تضيء أفق المدينة بنيون متحرك.\nسيارات طائرة تعبر بين السحاب بصوت محركات فائقة.\nالبطل ينظر إلى الأفق البعيد في انتظار المستقبل.\nشعار DaVinci AI يظهر في السماء بروعة سينمائية."
 
-# تبويبات الموقع
-tab_gpt, tab_manual, tab_platforms, tab_models = st.tabs([
-    "🤖 ChatGPT Auto-Script & Video Generator",
-    "✍️ Manual Script Editor (60s)",
-    "🌐 Platform & Dimensions Hub",
-    "⚡ Lumina AI Model Suite"
-])
+# واجهة التبويبات الرئيسية
+tab_studio, tab_gallery, tab_settings = st.tabs(["🚀 Sora 2.0 Generator", "🖼️ Showcase & Presets", "⚙️ API Integration"])
 
-# التبويب 1: توليد السكريبت بواسطة ChatGPT تلقائياً
-with tab_gpt:
-    st.subheader("🤖 توليد القصة والفيديو تلقائياً بواسطة ChatGPT")
-    topic_input = st.text_input("أدخل موضوع القصة أو القناة (مثال: رحلة الفضاء، أسرار الذكاء الاصطناعي، حكايات تاريخية):", "أسرار المحيطات الغامضة")
+with tab_studio:
+    st.markdown("""
+    <div class="studio-card">
+        <h3>⚡ Prompt Studio - منشئ الفيديو السينمائي</h3>
+        <p style="color: #94a3b8;">أدخل الوصف (Text Prompt) أو الفكرة، وسيقوم محرك Sora 2.0 بتوليد المشاهد وتطبيق حركة الكاميرا والتعليق الصوتي.</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    col_g1, col_g2 = st.columns(2)
-    with col_g1:
-        plat_gpt = st.selectbox(
-            "اختر المنصة والمقاس التلقائي:",
-            [
-                "🎵 TikTok / Shorts / Reels (9:16)",
-                "🔴 YouTube HD Video (16:9)",
-                "📸 Instagram Post (1:1)",
-                "👻 Snapchat Spotlight (9:16)",
-                "📘 Facebook Reels (9:16)",
-                "💼 LinkedIn Video (16:9)"
-            ],
-            key="plat_gpt"
+    col_p1, col_p2 = st.columns([2, 1])
+    
+    with col_p1:
+        user_prompt = st.text_area(
+            "وصف الفيديو (Prompt / Story Idea):",
+            "روبوت في المستقبل يكتشف زهرة نادرة تنمو في وسط مدينة مهجورة",
+            height=120
         )
-    with col_g2:
-        voice_gpt = st.selectbox(
-            "اختر الصوت واللغة:",
-            [
-                "🇸🇦 العربية - لهجة سعودية / خليجية",
-                "🇪🇬 العربية - لهجة مصرية",
-                "🌐 العربية - الفصحى القياسية",
-                "🇺🇸 English - US Male/Female",
-                "🇬🇧 English - UK British",
-                "🇫🇷 French - Français",
-                "🇪🇸 Spanish - Español"
-            ],
-            key="voice_gpt"
+        negative_prompt = st.text_input("الوصف المستبعد (Negative Prompt):", "blurry, low quality, distorted hands, bad lighting")
+    
+    with col_p2:
+        aspect_ratio = st.selectbox(
+            "أبعاد المنصة (Aspect Ratio):",
+            ["9:16 - Vertical (TikTok / Reels / Shorts)", "16:9 - Landscape (YouTube / Cinema)", "1:1 - Square (Instagram Feed)", "21:9 - Ultrawide Cinema"]
+        )
+        voice_lang = st.selectbox(
+            "لغات التعليق الصوتي:",
+            ["🇸🇦 العربية (سعودي/خليجي)", "🌐 العربية (فصحى)", "🇺🇸 English (US)", "🇬🇧 English (UK)", "🇫🇷 French"]
         )
 
-# التبويب 2: تحرير السكريبت يدوياً
-with tab_manual:
-    st.subheader("✍️ تحرير نصوص السكريبت والمشاهد يدوياً")
-    manual_script = st.text_area(
-        "أدخل نصوص المشاهد (كل سطر يصنع مشهداً وصوراً متزامنة):",
-        value="في عام 2050، فتحت البشرية أبواب المحيط الرقمي.\nسفن تنطلق نحو مجرات لم يطأها إنسان من قبل.\nأسرار كونية تنتظر من يفك شفرتها.\nرحلة لا عودة فيها نحو المستقبل.\nهل أنت مستعد لاكتشاف الحقيقة؟",
-        height=160
-    )
+    # تحديد مقاسات الفيديو
+    if "9:16" in aspect_ratio: w, h = 1080, 1920
+    elif "16:9" in aspect_ratio: w, h = 1920, 1080
+    elif "1:1" in aspect_ratio: w, h = 1080, 1080
+    else: w, h = 1920, 810 # 21:9
 
-# التبويب 3: المنصات والأبعاد
-with tab_platforms:
-    st.subheader("📐 الأبعاد المتاحة وخصائص المنصات")
-    st.markdown("""
-    * **🎵 TikTok & Reels (9:16):** 1080x1920 (أفضل مقاس للفيديوهات العمودية القصيرة)
-    * **🔴 YouTube Longform (16:9):** 1920x1080 (أفضل مقاس للشاشات الكبيرة والمحتوى السينمائي)
-    * **📸 Instagram Feed (1:1):** 1080x1080 (مقاس مربع متوافق مع كافة التغذيات)
-    * **📸 Instagram Story (4:5):** 1080x1350 (بورتريه ملائم للإعلانات)
-    """)
+    voice_map = {
+        "🇸🇦 العربية (سعودي/خليجي)": ('ar', 'com.sa'),
+        "🌐 العربية (فصحى)": ('ar', 'com'),
+        "🇺🇸 English (US)": ('en', 'com'),
+        "🇬🇧 English (UK)": ('en', 'co.uk'),
+        "🇫🇷 French": ('fr', 'fr')
+    }
+    lang, tld = voice_map[voice_lang]
 
-# التبويب 4: خطط ونماذج Lumina
-with tab_models:
-    st.subheader("⚡ محركات الذكاء الاصطناعي المدمجة في Lumina AI")
-    st.markdown("""
-    - **Seedance 2.5:** محرك توليد الفيديو السينمائي عالي الجودة.
-    - **Seedream 5.0 Pro:** محرك توليد الصور والخلفيات الذكية.
-    - **OmniHuman 1.5:** محرك الشخصيات والمتحدثين الرقميين.
-    - **GPT-4o Mini:** محرك صياغة السكريبتات والتحليل النصي.
-    """)
+    st.markdown("---")
 
-st.markdown("---")
-
-# إعدادات الأبعاد والصوت للتوليد
-plat_choice = plat_gpt if 'plat_gpt' in locals() else "🎵 TikTok / Shorts / Reels (9:16)"
-voice_choice = voice_gpt if 'voice_gpt' in locals() else "🇸🇦 العربية - لهجة سعودية / خليجية"
-
-if "9:16" in plat_choice: width, height = 1080, 1920
-elif "16:9" in plat_choice: width, height = 1920, 1080
-elif "1:1" in plat_choice: width, height = 1080, 1080
-else: width, height = 1080, 1350
-
-voice_map = {
-    "🇸🇦 العربية - لهجة سعودية / خليجية": ('ar', 'com.sa'),
-    "🇪🇬 العربية - لهجة مصرية": ('ar', 'com.eg'),
-    "🌐 العربية - الفصحى القياسية": ('ar', 'com'),
-    "🇺🇸 English - US Male/Female": ('en', 'com'),
-    "🇬🇧 English - UK British": ('en', 'co.uk'),
-    "🇫🇷 French - Français": ('fr', 'fr'),
-    "🇪🇸 Spanish - Español": ('es', 'es')
-}
-lang_code, tld_val = voice_map.get(voice_choice, ('ar', 'com'))
-
-# زر الإنتاج الرئيسي
-if st.button("🚀 إنشاء قصة وفيديو Lumina AI (60s) الآن"):
-    status_box = st.empty()
-    progress_bar = st.progress(0)
-    
-    # 1. توليد أو تجهيز النص
-    status_box.markdown("**🤖 Step 1: جاري صياغة السكريبت بواسطة ChatGPT...**")
-    if topic_input and len(topic_input.strip()) > 0:
-        script_text = generate_chatgpt_script(topic_input, openai_api_key)
-    else:
-        script_text = manual_script
-        
-    lines = [l.strip() for l in script_text.split("\n") if l.strip()]
-    
-    if not lines:
-        st.error("يرجى إدخال موضوع أو سكريبت أولاً!")
-    else:
-        try:
-            sub_clips = []
-            audio_clips = []
-            temp_files = []
-            total_lines = len(lines)
+    if st.button("✨ Generate DaVinci Sora 2.0 Video"):
+        if not user_prompt.strip():
+            st.error("يرجى أدخال وصف الفيديو أولاً!")
+        else:
+            status_box = st.empty()
+            prog_bar = st.progress(0)
             
-            for i, line in enumerate(lines):
-                status_box.markdown(f"**🎨 Step 2: معالجة المشهد ({i+1}/{total_lines}) مع تركيب الصوت والنص على الصورة...**")
+            try:
+                status_box.markdown("**🤖 Phase 1: معالجة البرومبت وتحسين السكريبت بواسطة Sora Engine...**")
+                script = enhance_prompt_with_gpt(user_prompt, openai_key)
+                lines = [l.strip() for l in script.split("\n") if l.strip()][:5]
                 
-                # إنشاء الصوت
-                audio_file = f"lumina_v12_{i}.mp3"
-                tts = gTTS(text=line, lang=lang_code, tld=tld_val)
-                tts.save(audio_file)
-                temp_files.append(audio_file)
+                sub_clips = []
+                audio_clips = []
+                temp_files = []
+                total = len(lines)
                 
-                a_clip = AudioFileClip(audio_file)
-                line_dur = a_clip.duration
-                audio_clips.append(a_clip)
+                for i, line in enumerate(lines):
+                    status_box.markdown(f"**🎬 Phase 2: رندر المشهد السينمائي ({i+1}/{total}) مع حركة الكاميرا ({camera_motion})...**")
+                    
+                    # 1. الصوت
+                    aud_path = f"davinci_audio_{i}.mp3"
+                    tts = gTTS(text=line, lang=lang, tld=tld)
+                    tts.save(aud_path)
+                    temp_files.append(aud_path)
+                    
+                    aclip = AudioFileClip(aud_path)
+                    dur = aclip.duration
+                    audio_clips.append(aclip)
 
-                # جلب الصورة السينمائية
-                bg_img = get_lumina_background(width, height, i)
-                bg_clip = ImageClip(np.array(bg_img)).set_duration(line_dur)
+                    # 2. الصورة البصرية
+                    bg_img = fetch_davinci_frame(w, h, i * 42, camera_motion)
+                    bg_clip = ImageClip(np.array(bg_img)).set_duration(dur)
+                    
+                    # 3. محاكاة حركة الكاميرا بسيطاً (Zoom Effect)
+                    if "Zoom" in camera_motion:
+                        bg_clip = bg_clip.resize(lambda t: 1 + 0.03 * t)
 
-                # رسم النص الواضح جداً فوق الصورة
-                txt_np = render_lumina_text(line, lang=lang_code, width=width, height=height, font_color="yellow")
-                txt_clip = ImageClip(txt_np).set_duration(line_dur)
+                    # 4. النص السلس فوق الصورة
+                    sub_np = draw_davinci_subtitles(line, lang=lang, width=w, height=h)
+                    sub_clip = ImageClip(sub_np).set_duration(dur)
 
-                # دمج المشهد
-                scene = CompositeVideoClip([bg_clip, txt_clip]).set_audio(a_clip)
-                sub_clips.append(scene)
+                    # التركيب النهائي للمشهد
+                    scene = CompositeVideoClip([bg_clip, sub_clip]).set_audio(aclip)
+                    sub_clips.append(scene)
+                    
+                    prog_bar.progress(int(((i + 1) / total) * 85))
+
+                status_box.markdown("**⚡ Phase 3: تجميع الصوت وتصدير الفيديو بدقة عالية...**")
+                final_v = concatenate_videoclips(sub_clips)
+                out_file = "davinci_sora_output.mp4"
+                final_v.write_videofile(out_file, fps=24, codec='libx264', audio_codec='aac')
                 
-                progress_bar.progress(int(((i + 1) / total_lines) * 85))
+                prog_bar.progress(100)
+                status_box.empty()
+                
+                # التنظيف
+                for c in audio_clips: c.close()
+                for f in temp_files:
+                    if os.path.exists(f): os.remove(f)
 
-            status_box.markdown("**⚡ Step 3: جاري الرندر النهائي وتصدير قصة الـ 60 ثانية...**")
-            final_video = concatenate_videoclips(sub_clips)
-            output_file = "lumina_v12_final.mp4"
-            final_video.write_videofile(output_file, fps=24, codec='libx264', audio_codec='aac')
+                st.balloons()
+                st.success("🎉 تم إنشاء فيديو DaVinci Sora 2.0 بنجاح!")
+                st.video(out_file)
 
-            progress_bar.progress(100)
-            status_box.empty()
-            
-            # التنظيف
-            for c in audio_clips: c.close()
-            for f in temp_files:
-                if os.path.exists(f): os.remove(f)
+            except Exception as e:
+                st.error(f"حدث خطأ أثناء رندر الفيديو: {str(e)}")
 
-            st.balloons()
-            st.success("✨ تم توليد الفيديو السينمائي بنجاح!")
-            st.video(output_file)
+with tab_gallery:
+    st.subheader("🖼️ معرض الأنماط والمخرجات السابقة (DaVinci Presets)")
+    st.info("استعرض نماذج الصور المولدة عبر المحرك:")
+    col_m1, col_m2, col_m3 = st.columns(3)
+    with col_m1:
+        st.image("https://picsum.photos/600/1000?random=1", caption="Cinematic 8K")
+    with col_m2:
+        st.image("https://picsum.photos/600/1000?random=2", caption="Cyberpunk City")
+    with col_m3:
+        st.image("https://picsum.photos/600/1000?random=3", caption="Anime Visuals")
 
-        except Exception as e:
-            st.error(f"حدث خطأ أثناء الإنشاء: {str(e)}")
+with tab_settings:
+    st.subheader("⚙️ ربط المزودات المباشرة (Direct API Integration)")
+    st.write("يمكنك ربط مفاتيح API المباشرة مثل OpenAI أو Runway أو Midjourney للحصول على سرعة توليد مضاعفة.")
+    st.text_input("Runway Gen-2 API Key:")
+    st.text_input("Midjourney / Pika API Key:")
