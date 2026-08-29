@@ -3,18 +3,30 @@ import asyncio
 import os
 import requests
 import edge_tts
-from PIL import Image, ImageDraw
-from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
+from PIL import Image, ImageDraw, ImageFont
+import numpy as np
+from moviepy.editor import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips, AudioArrayClip
 
-st.set_page_config(page_title="AutoShorts Pro Studio", page_icon="🎬", layout="wide")
+# دعم اللغة العربية
+try:
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+    HAS_ARABIC_SUPPORT = True
+except ImportError:
+    HAS_ARABIC_SUPPORT = False
 
-st.title("🚀 مولد الفيديوهات الاحترافي - مشاهد متعددة")
-st.write("اصنع فيديو قصير بنمط Reels / TikTok بمشاهد وصور متغيرة مع كل جملة مجاناً!")
+st.set_page_config(page_title="AutoShorts Ultimate Studio V5", page_icon="🔥", layout="wide")
 
-# 1. القائمة الجانبية للإعدادات
-st.sidebar.header("⚙️ إعدادات الصوت والأسلوب")
+st.title("🔥 استوديو الإنتاج الفائق AutoShorts V5")
+st.write("صناعة فيديوهات احترافية كاملة: مشاهد متحركة، موسيقى خلفية، ترجمة ملونة، وعلامة مائية!")
+
+# 1. الشريط الجانبي للإعدادات
+st.sidebar.header("⚙️ إعدادات الإنتاج المتقدمة")
+
+channel_watermark = st.sidebar.text_input("🏷️ اسم قناتك (Watermark):", "@MoneyRadar")
+
 voice_option = st.sidebar.selectbox(
-    "🎙️ اختر صوت المعلق:",
+    "🎙️ اختر المعلق الصوتي:",
     ("حامد - سعودي (رجالي)", "سلمى - مصري (نسائي)", "ماجد - إماراتي (رجالي)", "منى - قطري (نسائي)")
 )
 
@@ -25,39 +37,79 @@ voices_map = {
     "منى - قطري (نسائي)": "ar-QA-MonaNeural"
 }
 
+text_color_choice = st.sidebar.selectbox(
+    "🎨 لون الترجمة الرئيسي:",
+    ("أصفر يوتيوب (Yellow)", "أخضر تيك توك (Neon Green)", "أبيض ساطع (White)")
+)
+
+color_map = {
+    "أصفر يوتيوب (Yellow)": (255, 220, 0, 255),
+    "أخضر تيك توك (Neon Green)": (57, 255, 20, 255),
+    "أبيض ساطع (White)": (255, 255, 255, 255)
+}
+
+bgm_option = st.sidebar.checkbox("🎵 إضافة موسيقى خلفية حماسية", value=True)
+
 style_prompt = st.sidebar.selectbox(
-    "🎨 نمط الصور والفن:",
-    ("cinematic, 8k vertical, realistic", "3D cartoon animation style, Pixar style", "dark moody documentary style", "cyberpunk neon style")
+    "🎨 نمط وجو الصور:",
+    ("cinematic, 8k vertical, highly detailed, photorealistic", 
+     "3D Pixar style animation, bright colors, vertical format", 
+     "dark moody documentary style, ultra realistic",
+     "cyberpunk neon style, futuristic 8k vertical")
 )
 
 # 2. كتابة السكريبت
-st.subheader("📝 اكتب سيناريو الفيديو (كل جملة في سطر مستقل):")
+st.subheader("📝 سيناريو الفيديو:")
+
 user_script = st.text_area(
-    "أدخل جمل السكريبت:",
+    "أدخل جمل السكريبت (كل جملة في سطر مستقل):", 
     value="هل تعلم أن الأهرامات ليست فقط في مصر؟\nالسودان تحتوي على أكثر من 200 هرم أثري مذهل!\nوهي تتفوق عدداً على جميع أهرامات مصر مجتمعة.\nتابعنا للمزيد من المعرفة والمعلومات الشيقة يومياً!",
-    height=150
+    height=140
 )
 
-# دالة تحسين الصورة وإضافة مظلل للترجمة
-def process_image(img_path, output_path):
+# دالة تنسيق النص العربي
+def format_arabic_text(text):
+    if HAS_ARABIC_SUPPORT:
+        reshaped = arabic_reshaper.reshape(text)
+        return get_display(reshaped)
+    return text
+
+# دالة معالجة الصور وإضافة الترجمة والعلامة المائية
+def process_frame(img_path, subtitle_text, watermark_text, output_path):
     img = Image.open(img_path).convert("RGB")
-    width, height = img.size
+    w, h = img.size
     
-    # إضافة شريط ناعم شفاف في الأسفل لزيادة الاحترافية
-    overlay = Image.new('RGBA', img.size, (0, 0, 0, 0))
-    overlay_draw = ImageDraw.Draw(overlay)
-    banner_height = int(height * 0.22)
-    overlay_draw.rectangle([0, height - banner_height, width, height], fill=(0, 0, 0, 140))
+    overlay = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    
+    # مظلل أسفل الشاشة
+    banner_height = int(h * 0.22)
+    draw.rectangle([0, h - banner_height, w, h], fill=(0, 0, 0, 160))
+    
+    # رسم العلامة المائية
+    if watermark_text:
+        wm = format_arabic_text(watermark_text)
+        draw.text((int(w * 0.05), int(h * 0.04)), wm, fill=(255, 255, 255, 180))
+        
+    # رسم الترجمة
+    formatted_sub = format_arabic_text(subtitle_text)
+    sub_x = int(w * 0.08)
+    sub_y = int(h - banner_height + (banner_height * 0.3))
+    
+    # حدود سوداء للترجمة (Outline)
+    for dx, dy in [(-2,-2), (-2,2), (2,-2), (2,2), (0,-2), (0,2), (-2,0), (2,0)]:
+        draw.text((sub_x + dx, sub_y + dy), formatted_sub, fill=(0, 0, 0, 255))
+        
+    # لون النص
+    draw.text((sub_x, sub_y), formatted_sub, fill=color_map[text_color_choice])
     
     final_img = Image.alpha_composite(img.convert('RGBA'), overlay).convert('RGB')
     final_img.save(output_path)
 
-# دالة توليد الصوت
 async def generate_voice(text, voice_code, output_audio):
-    tts = edge_tts.Communicate(text, voice_code)
+    tts = edge_tts.Communicate(text, voice_code, rate="+10%")
     await tts.save(output_audio)
 
-# دالة جلب الصورة
 def fetch_image(prompt, output_img):
     clean_prompt = requests.utils.quote(f"{prompt}, {style_prompt}")
     url = f"https://image.pollinations.ai/prompt/{clean_prompt}?width=1080&height=1920&nologo=true"
@@ -65,40 +117,56 @@ def fetch_image(prompt, output_img):
     with open(output_img, "wb") as f:
         f.write(res.content)
 
-# زر البدء والتجميع
-if st.button("🚀 إنشاء الفيديو متعدد المشاهد الآن"):
+# إنتاج نغمة خلفية بسيطة خفيفة تلقائياً بدون ملفات خارجية
+def make_simple_bgm(duration):
+    fps = 44100
+    t = np.linspace(0, duration, int(fps * duration), False)
+    # توليد نغمة خلفية هادئة ناعمة
+    note = 0.03 * np.sin(2 * np.pi * 220 * t) * np.exp(-t % 1)
+    audio_array = np.vstack((note, note)).T
+    return AudioArrayClip(audio_array, fps=fps)
+
+# 3. زر البدء
+if st.button("🚀 إنتاج الفيديو النهائي"):
     sentences = [s.strip() for s in user_script.split("\n") if s.strip()]
     if not sentences:
-        st.error("الرجاء كتابة نص واحد على الأقل!")
+        st.error("الرجاء كتابة سيناريو يحتوي على نص!")
     else:
-        with st.spinner("جاري تصميم المشاهد، توليد الأصوات، وتجميع الفيديو النهائي..."):
+        with st.spinner("⚡ جاري إنشاء المشاهد، الصوت، والمؤثرات..."):
             progress_bar = st.progress(0)
             clips = []
             selected_voice = voices_map[voice_option]
             
             for i, sentence in enumerate(sentences):
-                st.write(f"⏳ جاري إنشاء المشهد {i+1} من {len(sentences)}: `{sentence[:30]}...`")
+                st.write(f"🎬 معالجة المشهد {i+1}: `{sentence[:30]}...`")
                 
                 audio_file = f"voice_{i}.mp3"
                 raw_img = f"bg_{i}.jpg"
                 final_img = f"processed_bg_{i}.jpg"
                 
-                # إنشاء الصوت والصورة لكل مشهد
                 asyncio.run(generate_voice(sentence, selected_voice, audio_file))
                 fetch_image(sentence, raw_img)
-                process_image(raw_img, final_img)
+                process_frame(raw_img, sentence, channel_watermark, final_img)
                 
-                # إنشاء المقطع البصري والصوتي للمشهد
                 audio_clip = AudioFileClip(audio_file)
                 img_clip = ImageClip(final_img).set_duration(audio_clip.duration).set_audio(audio_clip)
+                
+                # إضافة حركة زوم ناعمة
+                img_clip = img_clip.resize(lambda t: 1 + 0.07 * (t / audio_clip.duration))
                 clips.append(img_clip)
                 
                 progress_bar.progress((i + 1) / len(sentences))
             
-            # دمج جميع المشاهد في فيديو واحد
-            st.write("🎬 جاري رندر وتصدير الفيديو النهائي...")
+            st.write("🎞️ جاري رندر وتجميع الفيديو مع الموسيقى...")
             final_video = concatenate_videoclips(clips, method="compose")
-            final_video.write_videofile("final_autoshorts.mp4", fps=24, codec="libx264", audio_codec="aac")
             
-            st.success("🎉 تم إنشاء الفيديو متعدد المشاهد بنجاح!")
-            st.video("final_autoshorts.mp4")
+            # دمج الموسيقى إن تم اختيارها
+            if bgm_option:
+                bgm_clip = make_simple_bgm(final_video.duration)
+                combined_audio = CompositeAudioClip([final_video.audio, bgm_clip])
+                final_video = final_video.set_audio(combined_audio)
+                
+            final_video.write_videofile("ultimate_autoshort.mp4", fps=24, codec="libx264", audio_codec="aac")
+            
+            st.success("🎉 تم إنتاج الفيديو السينمائي بنجاح!")
+            st.video("ultimate_autoshort.mp4")
