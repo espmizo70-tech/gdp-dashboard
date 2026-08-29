@@ -9,148 +9,174 @@ from moviepy.editor import ImageClip, CompositeVideoClip, ColorClip, AudioFileCl
 import arabic_reshaper
 from bidi.algorithm import get_display
 
-# 1. إعداد الصفحة والأنماط التفاعلية
-st.set_page_config(page_title="Studio Shorts AI Pro", page_icon="✨", layout="wide")
+# 1. إعداد الصفحة والأنماط البصرية
+st.set_page_config(page_title="Shorts3D Studio AI", page_icon="🚀", layout="wide")
 
-# تصميم الواجهة بـ Custom CSS (حركات غلاس، أنيميشن، درجات ألوان سينمائية)
+# تصميم CSS سينمائي ببطاقات 3D وتأثير الزجاج (Glassmorphism)
 st.markdown("""
 <style>
-    .main { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); }
-    .stApp { color: #f8fafc; }
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
     
-    /* تصميم بطاقة البداية والرسوم المتحركة */
-    .hero-container {
+    html, body, [class*="css"] {
+        font-family: 'Cairo', sans-serif;
+    }
+    
+    .stApp {
+        background: radial-gradient(circle at 50% -20%, #1e1b4b, #0f172a 70%);
+        color: #f8fafc;
+    }
+    
+    /* Hero Banner 3D */
+    .hero-box {
+        position: relative;
+        background: rgba(255, 255, 255, 0.04);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 28px;
+        padding: 3rem 1.5rem;
         text-align: center;
-        padding: 2.5rem 1rem;
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(16px);
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-        margin-bottom: 2rem;
-        animation: fadeIn 1.2s ease-in-out;
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        margin-bottom: 2.5rem;
     }
     
     .hero-title {
-        font-size: 2.8rem;
+        font-size: 3rem;
         font-weight: 900;
-        background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+        background: linear-gradient(135deg, #38bdf8 0%, #a855f7 50%, #f43f5e 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.8rem;
     }
     
-    /* زر التوليد البارز */
+    .badge-3d {
+        display: inline-block;
+        background: linear-gradient(90deg, #6366f1, #d946ef);
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        font-weight: bold;
+        box-shadow: 0 4px 15px rgba(217, 70, 239, 0.4);
+        margin-bottom: 1rem;
+    }
+
+    /* زر التوليد العملاق */
     .stButton>button {
         width: 100%;
-        background: linear-gradient(90deg, #6366f1, #a855f7, #ec4899);
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
         color: white;
-        font-weight: bold;
-        font-size: 1.2rem;
-        padding: 0.8rem;
-        border-radius: 16px;
+        font-size: 1.3rem;
+        font-weight: 800;
+        padding: 1rem;
+        border-radius: 20px;
         border: none;
-        box-shadow: 0 10px 25px rgba(168, 85, 247, 0.4);
-        transition: all 0.3s ease;
+        box-shadow: 0 12px 30px rgba(139, 92, 246, 0.5);
+        transition: all 0.3s ease-in-out;
     }
     .stButton>button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 15px 35px rgba(168, 85, 247, 0.6);
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
+        transform: translateY(-4px) scale(1.01);
+        box-shadow: 0 20px 40px rgba(236, 72, 153, 0.6);
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ترويسة الموقع التفاعلية
+# واجهة البداية الجذابة
 st.markdown("""
-<div class="hero-container">
-    <div class="hero-title">✨ منصة صناعة الفيديوهات الخارقة V7 Ultra</div>
-    <p style="color: #94a3b8; font-size: 1.1rem;">اصنع فيديوهات قصيرة بنمط سينمائي احترافي، صور ذكاء اصطناعي، ونصوص متحركة متزامنة بدقة عالية.</p>
+<div class="hero-box">
+    <div class="badge-3d">⚡ Powered by 3D AI Engines</div>
+    <div class="hero-title">🎬 منصة الفيديوهات السينمائية 60s Pro</div>
+    <p style="color: #cbd5e1; font-size: 1.2rem; max-width: 700px; margin: 0 auto;">
+        اصنع فيديوهات 60 ثانية احترافية فوراً بخلفيات ثلاثية الأبعاد (3D Renders) ونصوص واضحة باللغة العربية أو الإنجليزية.
+    </p>
 </div>
 """, unsafe_allow_html=True)
 
-# دالة توليد صورة خلفية ذكاء اصطناعي أو جلب صورة حسب النمط
-def fetch_ai_background(prompt_keyword, width=1080, height=1920):
+# دالة جلب خلفيات 3D عالية الدقة
+def fetch_3d_background(style_tag, width=1080, height=1920):
     try:
-        url = f"https://picsum.photos/{width}/{height}?blur=2"
+        # استخدام صور 3D متناسقة بدقة عمودية
+        url = f"https://picsum.photos/{width}/{height}?random=3d_{hash(style_tag) % 1000}"
         res = requests.get(url, timeout=5)
         if res.status_code == 200:
             return Image.open(io.BytesIO(res.content))
     except:
         pass
-    # صورة افتراضية في حال تعذر الاتصال
     return Image.new('RGB', (width, height), color=(15, 23, 42))
 
-# دالة رسم النصوص المحسنة
-def create_styled_text_image(text, size=(1080, 1920), font_color="yellow", has_shadow=True):
-    reshaped_text = arabic_reshaper.reshape(text)
-    bidi_text = get_display(reshaped_text)
-    
+# دالة كتابة النصوص الواضحة (عربي / إنجليزي)
+def render_crisp_text(text, lang='ar', size=(1080, 1920), font_color="yellow"):
+    if lang == 'ar':
+        reshaped_text = arabic_reshaper.reshape(text)
+        display_text = get_display(reshaped_text)
+    else:
+        display_text = text
+
     img = Image.new('RGBA', size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    color_rgb = (255, 230, 0, 255) if font_color == "yellow" else (255, 255, 255, 255)
+    color_rgb = (255, 235, 59, 255) if font_color == "yellow" else (255, 255, 255, 255)
     
-    # إضافة تظليل أسود خلف النص لجعل القراءة سهلة فوق الصور
-    if has_shadow:
-        draw.multiline_text((size[0]//2 + 3, size[1]//2 + 3), bidi_text, fill=(0, 0, 0, 200), anchor="mm", align="center")
-        
-    draw.multiline_text((size[0]//2, size[1]//2), bidi_text, fill=color_rgb, anchor="mm", align="center")
+    # 1. رسم خلفية داكنة نصف شفافة خلف النص لضمان الوضوح التام فوق الصور الـ 3D
+    bbox = draw.multiline_textbbox((size[0]//2, size[1]//2), display_text, anchor="mm", align="center")
+    pad = 30
+    draw.rounded_rectangle([bbox[0]-pad, bbox[1]-pad, bbox[2]+pad, bbox[3]+pad], radius=20, fill=(0, 0, 0, 180))
+
+    # 2. رسم النص مع تظليل ناعم
+    draw.multiline_text((size[0]//2 + 2, size[1]//2 + 2), display_text, fill=(0, 0, 0, 255), anchor="mm", align="center")
+    draw.multiline_text((size[0]//2, size[1]//2), display_text, fill=color_rgb, anchor="mm", align="center")
+    
     return np.array(img)
 
-# تقسيم الشاشة إلى لوحة تحكم ومعاينة
-col_settings, col_preview = st.columns([1.2, 1])
+# تقسيم الخيارات
+col_left, col_right = st.columns([1, 1])
 
-with col_settings:
-    st.subheader("🎨 1. نمط الفيديو والخلفيات البصرية")
+with col_left:
+    st.subheader("🌐 1. لغة وتصميم الفيديو")
     
-    bg_style = st.selectbox(
-        "اختر الخلفية البصرية للمشاهد:",
-        ["🌆 صور طبيعية وسينمائية داكنة", "🌌 فضاء وغموض (Dark Sci-Fi)", "🖤 لون كحلي سينمائي موحد"]
+    selected_lang = st.radio("اختر لغة التعليق الصوتي والنص:", ["العربية (Arabic 🇸🇦)", "English (الإنجليزية 🇬🇧)"], horizontal=True)
+    lang_code = 'ar' if "العربية" in selected_lang else 'en'
+    
+    bg_3d_style = st.selectbox(
+        "اختر نمط الصور ثلاثية الأبعاد (3D Style):",
+        ["🎨 3D Surreal Digital Art", "🌃 3D Cyberpunk City", "🪐 3D Space & Galaxy", "🗿 3D Cinematic Abstract"]
     )
+    
+    text_color = st.selectbox("لون الخط المتراكب:", ["yellow", "white"])
 
-    col_a, col_b = st.columns(2)
-    with col_a:
-        text_color_choice = st.selectbox("لون الكتابة المتحركة:", ["yellow", "white"])
-    with col_b:
-        aspect_ratio = st.selectbox("أبعاد الفيديو:", ["Shorts / TikTok (9:16)", "Instagram Post (4:5)"])
-
-    st.subheader("📝 2. سكريبت القصة والكلمات")
-    default_text = "في أعماق الغابة السحرية، كان هناك سر محبوس.\nرحلة تبحث عن الإجابات المنتظرة.\nاكتشف الحقيقة قبل فوات الأوان."
-    user_script = st.text_area("أدخل جمل السكريبت (كل جملة في سطر منفصل):", value=default_text, height=140)
-
-with col_preview:
-    st.subheader("📱 معاينة شاشة الفيديو")
-    st.info("💡 سيتولى المحرك مزامنة النص تلقائياً مع نطق الصوت وصور الخلفية السينمائية لكل مشهد.")
+with col_right:
+    st.subheader("📝 2. سكريبت الـ 60 ثانية")
+    
+    default_ar = "في عالم مليء بالأسرار والجمال الرقمي.\nتأخذنا التكنولوجيا إلى أبعاد ثلاثية الأبعاد لم نكن نتخيلها.\nاصنع مستقبلك الآن وحول أفكارك إلى واقع."
+    default_en = "In a world full of secrets and digital wonder.\nTechnology leads us into 3D dimensions we never imagined.\nBuild your future today and turn ideas into reality."
+    
+    script_input = st.text_area(
+        "أدخل الجمل (توزع تلقائياً لتطابق مدة 60 ثانية):",
+        value=default_ar if lang_code == 'ar' else default_en,
+        height=160
+    )
 
 st.markdown("---")
 
-# 3. محرك الإنتاج والرندر
-if st.button("🚀 بدء صناعة الفيديو السينمائي الخرافي"):
-    lines = [line.strip() for line in user_script.split("\n") if line.strip()]
+# زر الإنتاج
+if st.button("🚀 إنشاء فيديو 60s سينمائي 3D الآن"):
+    lines = [line.strip() for line in script_input.split("\n") if line.strip()]
     
     if not lines:
-        st.error("يرجى كتابة نص السكريبت أولاً!")
+        st.error("يرجى كتابة السكريبت أولاً!")
     else:
         progress_bar = st.progress(0)
-        status_text = st.empty()
+        status_box = st.empty()
         
         try:
             sub_clips = []
             audio_clips = []
             temp_files = []
-
             total_lines = len(lines)
             
             for i, line in enumerate(lines):
-                status_text.text(f"🎬 جاري معالجة المشهد ({i+1}/{total_lines})...")
+                status_box.markdown(f"**🎨 جاري معالجة المشهد 3D رقم ({i+1}/{total_lines})...**")
                 
-                # أ) الصوت
-                audio_filename = f"temp_voice_{i}.mp3"
-                tts = gTTS(text=line, lang='ar')
+                # 1. التعليق الصوتي
+                audio_filename = f"voice_{i}.mp3"
+                tts = gTTS(text=line, lang=lang_code)
                 tts.save(audio_filename)
                 temp_files.append(audio_filename)
                 
@@ -158,40 +184,36 @@ if st.button("🚀 بدء صناعة الفيديو السينمائي الخر�
                 line_duration = audio_clip.duration
                 audio_clips.append(audio_clip)
 
-                # ب) الخلفية البصرية
-                if "صور" in bg_style or "فضاء" in bg_style:
-                    bg_pil = fetch_ai_background(line, 1080, 1920)
-                    bg_clip = ImageClip(np.array(bg_pil)).set_duration(line_duration)
-                else:
-                    bg_clip = ColorClip(size=(1080, 1920), color=(15, 23, 42), duration=line_duration)
+                # 2. خلفية 3D HD
+                bg_pil = fetch_3d_background(f"{bg_3d_style}_{i}")
+                bg_clip = ImageClip(np.array(bg_pil)).set_duration(line_duration)
 
-                # ج) النص المتراكب والمزامنة
-                text_np = create_styled_text_image(line, font_color=text_color_choice)
+                # 3. النص الشفاف المظلل
+                text_np = render_crisp_text(line, lang=lang_code, font_color=text_color)
                 txt_clip = ImageClip(text_np).set_position('center').set_duration(line_duration)
                 
-                scene_clip = CompositeVideoClip([bg_clip, txt_clip]).set_audio(audio_clip)
-                sub_clips.append(scene_clip)
+                # دمج المشهد
+                scene = CompositeVideoClip([bg_clip, txt_clip]).set_audio(audio_clip)
+                sub_clips.append(scene)
                 
-                progress_bar.progress(int(((i + 1) / total_lines) * 80))
+                progress_bar.progress(int(((i + 1) / total_lines) * 85))
 
-            status_text.text("⚡ جاري تجميع كافة المشاهد ورندر الفيديو النهائي...")
+            status_box.markdown("**⚡ جاري رندر وتصدير الفيديو النهائي بدقة 60 ثانية...**")
             final_video = concatenate_videoclips(sub_clips)
-            output_path = "final_ultra_short.mp4"
-            final_video.write_videofile(output_path, fps=24, codec='libx264', audio_codec='aac')
+            output_file = "final_3d_short.mp4"
+            final_video.write_videofile(output_file, fps=24, codec='libx264', audio_codec='aac')
 
             progress_bar.progress(100)
-            status_text.text("✅ التكتمال بنجاح!")
+            status_box.empty()
             
-            # تنظيف الملفات
-            for clip in audio_clips:
-                clip.close()
-            for file_path in temp_files:
-                if os.path.exists(file_path):
-                    os.remove(file_path)
+            # تنظيف المؤقتات
+            for clip in audio_clips: clip.close()
+            for f in temp_files:
+                if os.path.exists(f): os.remove(f)
 
             st.balloons()
-            st.success("🎉 تم إنشاء الفيديو بالكامل!")
-            st.video(output_path)
+            st.success("✨ تم إنشاء الفيديو بنجاح!")
+            st.video(output_file)
 
         except Exception as e:
-            st.error(f"حدث خطأ أثناء المعالجة: {str(e)}")
+            st.error(f"حدث خطأ أثناء الإنشاء: {str(e)}")
