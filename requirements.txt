@@ -6,3 +6,4 @@ numpy
 arabic_reshaper
 python-bidi
 requests
+
