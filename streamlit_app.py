@@ -10,10 +10,17 @@ from moviepy.editor import ImageClip, CompositeVideoClip, AudioFileClip, concate
 import arabic_reshaper
 from bidi.algorithm import get_display
 
-# 1. إعداد الصفحة والأنماط البصرية لمنصة Lumina AI
-st.set_page_config(page_title="Lumina AI Studio | BytePlus", page_icon="⚡", layout="wide")
+# تجربة استيراد مكتبة OpenAI
+try:
+    import openai
+    HAS_OPENAI = True
+except ImportError:
+    HAS_OPENAI = False
 
-# CSS سينمائي أسود زجاجي مطابق لمنصة BytePlus Lumina
+# 1. إعداد الصفحة وتصاميم Lumina AI العالمية
+st.set_page_config(page_title="Lumina AI Studio Pro - BytePlus", page_icon="⚡", layout="wide")
+
+# CSS سينمائي فاخر يحاكي واجهة Lumina AI / BytePlus
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
@@ -21,362 +28,351 @@ st.markdown("""
     * { font-family: 'Cairo', sans-serif; }
     
     .stApp {
-        background-color: #060913;
-        color: #f8fafc;
+        background: #050811;
+        color: #f1f5f9;
     }
     
-    /* Navbar Lumina Top Header */
-    .lumina-nav {
+    /* Navbar Top Bar */
+    .lumina-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: rgba(15, 23, 42, 0.85);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        padding: 14px 28px;
-        margin-bottom: 24px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        background: rgba(15, 23, 42, 0.9);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(56, 189, 248, 0.15);
+        border-radius: 22px;
+        padding: 16px 32px;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.6);
     }
     .lumina-logo {
-        font-size: 1.8rem;
+        font-size: 1.9rem;
         font-weight: 900;
-        background: linear-gradient(90deg, #00f2fe, #4facfe, #00c6ff);
+        background: linear-gradient(90deg, #00f2fe, #4facfe, #00c6ff, #a855f7);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        display: flex;
-        align-items: center;
-        gap: 10px;
     }
-    .badge-lumina {
+    .badge-status {
         background: linear-gradient(90deg, #ec4899, #8b5cf6);
         color: white;
-        padding: 4px 14px;
+        padding: 6px 16px;
         border-radius: 50px;
-        font-size: 0.82rem;
+        font-size: 0.85rem;
         font-weight: 800;
-        box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
+        box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
     }
     
-    /* Lumina Hero Card */
+    /* Hero Card */
     .hero-lumina {
-        background: linear-gradient(135deg, rgba(30, 27, 75, 0.8) 0%, rgba(15, 23, 42, 0.95) 100%);
-        border: 1px solid rgba(56, 189, 248, 0.2);
-        border-radius: 26px;
-        padding: 32px 24px;
+        background: linear-gradient(135deg, rgba(30, 27, 75, 0.85) 0%, rgba(15, 23, 42, 0.98) 100%);
+        border: 1px solid rgba(168, 85, 247, 0.25);
+        border-radius: 28px;
+        padding: 35px 28px;
         text-align: right;
-        margin-bottom: 28px;
-        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+        margin-bottom: 30px;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
     }
     .hero-title {
-        font-size: 2.3rem;
+        font-size: 2.4rem;
         font-weight: 900;
         color: #ffffff;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
     }
     .hero-desc {
         color: #94a3b8;
         font-size: 1.15rem;
+        line-height: 1.7;
     }
 
-    /* Model Cards Grid UI */
-    .model-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 20px;
-        padding: 20px;
-        text-align: center;
-        transition: all 0.3s ease;
-    }
-    .model-card:hover {
-        border-color: #38bdf8;
-        transform: translateY(-4px);
-        box-shadow: 0 15px 35px rgba(56, 189, 248, 0.2);
-    }
-
-    /* Styled Buttons */
+    /* Primary Action Buttons */
     .stButton>button {
         width: 100%;
-        background: linear-gradient(90deg, #00c6ff, #0072ff, #a855f7);
+        background: linear-gradient(90deg, #00c6ff, #0072ff, #a855f7, #ec4899);
         color: white;
-        font-size: 1.3rem;
+        font-size: 1.35rem;
         font-weight: 900;
-        padding: 1rem;
-        border-radius: 18px;
+        padding: 1.1rem;
+        border-radius: 20px;
         border: none;
-        box-shadow: 0 12px 30px rgba(0, 114, 255, 0.4);
+        box-shadow: 0 12px 35px rgba(0, 114, 255, 0.45);
         transition: all 0.3s ease;
     }
     .stButton>button:hover {
-        transform: translateY(-3px) scale(1.005);
-        box-shadow: 0 18px 40px rgba(168, 85, 247, 0.6);
+        transform: translateY(-3px) scale(1.01);
+        box-shadow: 0 20px 45px rgba(236, 72, 153, 0.6);
     }
 </style>
 """, unsafe_allow_html=True)
 
 # الشريط العلوي
 st.markdown("""
-<div class="lumina-nav">
-    <div class="lumina-logo">⚡ Lumina AI <span style="font-size: 0.9rem; color: #94a3b8; font-weight: normal;">by BytePlus</span></div>
+<div class="lumina-header">
+    <div class="lumina-logo">⚡ Lumina AI Studio <span style="font-size: 0.95rem; color: #94a3b8; font-weight: 400;">by BytePlus</span></div>
     <div>
-        <span class="badge-lumina">🔥 Seedance 2.5 & Seedream 5.0 Powered</span>
+        <span class="badge-status">🤖 ChatGPT & Seedance 2.5 Integrated</span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
 # البانر الرئيسي
 st.markdown("""
-<div class="hero-banner hero-lumina">
-    <div class="badge-lumina">LIMITED TIME VIP OFFER</div>
-    <div class="hero-title">منصة Lumina AI لصناعة الفيديوهات والقصص 60s</div>
-    <div class="hero-desc">استخدم أحدث محركات الذكاء الاصطناعي المباشرة (Text-to-Video & Multimodal) مع إمكانية ضبط المقاسات لـ TikTok، YouTube، وInstagram بأصوات فائقة الوضوح.</div>
+<div class="hero-lumina">
+    <div class="badge-status">🔥 ULTIMATE MULTI-PLATFORM GENERATOR</div>
+    <div class="hero-title">منصة توليد الفيديوهات والقصص AI المتكاملة</div>
+    <div class="hero-desc">أنشئ قصصاً وفيديوهات احترافية 60 ثانية لجميع المنصات (TikTok, YouTube, Instagram, Snapchat, Facebook, LinkedIn) بكتابة سينمائية فائقة الوضوح وتوليد تلقائي بواسطة ChatGPT.</div>
 </div>
 """, unsafe_allow_html=True)
 
-# دالة توليد خلفية سينمائية فائقة الوضوح
-def fetch_lumina_background(width, height, seed):
+# الشريط الجانبي لإعدادات مفتاح API
+st.sidebar.title("⚙️ إعدادات الذكاء الاصطناعي")
+openai_api_key = st.sidebar.text_input("مفتاح OpenAI API Key (اختياري لكتابة ChatGPT):", type="password")
+
+if openai_api_key:
+    st.sidebar.success("تم تفعيل مفتاح ChatGPT بنجاح! 🟢")
+else:
+    st.sidebar.info("سيتم استخدام النماذج الذكية التلقائية في حال عدم ادخال المفتاح. ℹ️")
+
+# دالة توليد الخلفية السينمائية المضمونة
+def get_lumina_background(width, height, seed):
     try:
-        url = f"https://picsum.photos/{width}/{height}?random={seed + 500}"
+        url = f"https://picsum.photos/{width}/{height}?random={seed + 120}"
         res = requests.get(url, timeout=4)
         if res.status_code == 200:
             return Image.open(io.BytesIO(res.content)).convert('RGB')
     except:
         pass
     
-    # خلفية سينمائية احتياطية تضمن التوليد دائماً
-    img = Image.new('RGB', (width, height), color=(10, 15, 30))
+    # خلفية سينمائية احتياطية عالية الجودة
+    img = Image.new('RGB', (width, height), color=(8, 12, 25))
     draw = ImageDraw.Draw(img)
     for y in range(height):
-        r = int(10 + (y / height) * 50)
-        g = int(15 + (y / height) * 30)
-        b = int(45 + (y / height) * 80)
+        r = int(8 + (y / height) * 45)
+        g = int(12 + (y / height) * 30)
+        b = int(25 + (y / height) * 80)
         draw.line([(0, y), (width, y)], fill=(r, g, b))
     return img
 
-# دالة رسم النصوص السينمائية الواضحة جداً فوق الصورة
+# دالة رسم النصوص السينمائية الواضحة فوق الصور (Text-On-Image Layer)
 def render_lumina_text(text, lang='ar', width=1080, height=1920, font_color="yellow"):
     img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     
-    wrap_limit = 24 if width < height else 48
+    wrap_limit = 22 if width < height else 46
     lines = textwrap.wrap(text, width=wrap_limit)
     wrapped_text = "\n".join(lines)
     
-    if lang == 'ar':
+    if lang in ['ar', 'ar-sa', 'ar-eg']:
         reshaped = arabic_reshaper.reshape(wrapped_text)
         display_text = get_display(reshaped)
     else:
         display_text = wrapped_text
 
-    font_size = int(height * 0.04)
+    font_size = int(height * 0.042)
     try:
         font = ImageFont.truetype("DejaVuSans.ttf", font_size)
     except:
         font = ImageFont.load_default()
 
-    cx, cy = width // 2, int(height * 0.78) # موضع الكلمات في الثلث السفلي
+    cx = width // 2
+    cy = int(height * 0.78) # موضعة الكلام في الثلث السفلي السينمائي
     
     bbox = draw.multiline_textbbox((cx, cy), display_text, font=font, anchor="mm", align="center")
-    pad_x = int(width * 0.04)
+    pad_x = int(width * 0.05)
     pad_y = int(height * 0.02)
     
-    # 1. صندوق حماية خلفي شبه شفاف عالي الوضوح
+    # 1. طبقة حماية سوداء شفافة خلف النص
     draw.rounded_rectangle(
         [bbox[0]-pad_x, bbox[1]-pad_y, bbox[2]+pad_x, bbox[3]+pad_y],
         radius=18,
-        fill=(0, 0, 0, 220),
-        outline=(56, 189, 248, 100),
+        fill=(0, 0, 0, 225),
+        outline=(56, 189, 248, 120),
         width=2
     )
 
     color_rgb = (255, 235, 59, 255) if font_color == "yellow" else (255, 255, 255, 255)
     
-    # 2. كتابة النص عالي الدقة
+    # 2. رسم الخط العريض الناصع
     draw.multiline_text((cx, cy), display_text, font=font, fill=color_rgb, anchor="mm", align="center")
     
     return np.array(img)
 
-# قائمة التبويبات المماثلة لمنصة BytePlus Lumina
-tab_video, tab_image, tab_avatar, tab_pricing = st.tabs([
-    "🎬 Seedance 2.5 (Video Generator)",
-    "🖼️ Seedream 5.0 (Image AI)",
-    "🗣️ OmniHuman 1.5 (AI Avatar)",
-    "💳 Plans & Pricing"
+# دالة كتابة السكريبت بواسطة ChatGPT
+def generate_chatgpt_script(topic, api_key):
+    if HAS_OPENAI and api_key:
+        try:
+            client = openai.OpenAI(api_key=api_key)
+            prompt = f"اكتب سكريبت قصة سينمائية مشوقة مدتها 60 ثانية حول موضوع: '{topic}'. مقسمة إلى 5 أسطر فقط، كل سطر يمثل مشهداً صغيراً بكلمات قوية ومباشرة بدون مقدمات أو أرقام."
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=300
+            )
+            return response.choices[0].message.content.strip()
+        except Exception as e:
+            st.warning(f"تعذر الاتصال بـ ChatGPT API: {str(e)} - تم تفعيل المنشئ المحلي تلقائياً.")
+    
+    # منشئ احتياطي في حال عدم إدخال API Key
+    return f"في عالم غريب ومثير، تبدأ رحلة {topic}.\nكل خطوة تقربنا من كشف السر المخبأ بين الظلال.\nأحداث متسارعة لم يكن يتوقعها أحد.\nاكتشف الحقيقة قبل فوات الأوان.\nهل أنت مستعد لهذه التجربة الفريدة؟"
+
+# تبويبات الموقع
+tab_gpt, tab_manual, tab_platforms, tab_models = st.tabs([
+    "🤖 ChatGPT Auto-Script & Video Generator",
+    "✍️ Manual Script Editor (60s)",
+    "🌐 Platform & Dimensions Hub",
+    "⚡ Lumina AI Model Suite"
 ])
 
-with tab_video:
-    col_nav1, col_nav2, col_nav3 = st.columns([1, 1, 1.2])
-
-    with col_nav1:
-        st.subheader("📐 1. أبعاد المنصة")
-        platform = st.selectbox(
-            "اختر منصتك والمقاس القياسي:",
+# التبويب 1: توليد السكريبت بواسطة ChatGPT تلقائياً
+with tab_gpt:
+    st.subheader("🤖 توليد القصة والفيديو تلقائياً بواسطة ChatGPT")
+    topic_input = st.text_input("أدخل موضوع القصة أو القناة (مثال: رحلة الفضاء، أسرار الذكاء الاصطناعي، حكايات تاريخية):", "أسرار المحيطات الغامضة")
+    
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+        plat_gpt = st.selectbox(
+            "اختر المنصة والمقاس التلقائي:",
             [
-                "🎵 TikTok / Shorts / Reels (9:16 - عمودي)",
-                "🔴 YouTube HD (16:9 - أفقي)",
-                "📸 Instagram Post (1:1 - مربع)",
-                "📸 Instagram Feed (4:5 - بورتريه)"
-            ]
+                "🎵 TikTok / Shorts / Reels (9:16)",
+                "🔴 YouTube HD Video (16:9)",
+                "📸 Instagram Post (1:1)",
+                "👻 Snapchat Spotlight (9:16)",
+                "📘 Facebook Reels (9:16)",
+                "💼 LinkedIn Video (16:9)"
+            ],
+            key="plat_gpt"
         )
-        
-        if "9:16" in platform: width, height = 1080, 1920
-        elif "16:9" in platform: width, height = 1920, 1080
-        elif "1:1" in platform: width, height = 1080, 1080
-        else: width, height = 1080, 1350
-
-        text_color = st.selectbox("لون كتابة النص السينمائي:", ["yellow", "white"])
-
-    with col_nav2:
-        st.subheader("🎙️ 2. محرك التعليق الصوتي")
-        voice_choice = st.selectbox(
-            "اختر صوت الراوي والنطق:",
+    with col_g2:
+        voice_gpt = st.selectbox(
+            "اختر الصوت واللغة:",
             [
                 "🇸🇦 العربية - لهجة سعودية / خليجية",
                 "🇪🇬 العربية - لهجة مصرية",
                 "🌐 العربية - الفصحى القياسية",
                 "🇺🇸 English - US Male/Female",
-                "🇬🇧 English - UK British"
-            ]
+                "🇬🇧 English - UK British",
+                "🇫🇷 French - Français",
+                "🇪🇸 Spanish - Español"
+            ],
+            key="voice_gpt"
         )
-        
-        voice_map = {
-            "🇸🇦 العربية - لهجة سعودية / خليجية": ('ar', 'com.sa'),
-            "🇪🇬 العربية - لهجة مصرية": ('ar', 'com.eg'),
-            "🌐 العربية - الفصحى القياسية": ('ar', 'com'),
-            "🇺🇸 English - US Male/Female": ('en', 'com'),
-            "🇬🇧 English - UK British": ('en', 'co.uk')
-        }
-        lang_code, tld_val = voice_map[voice_choice]
 
-    with col_nav3:
-        st.subheader("📜 3. سكريبت القصة (60 ثانية)")
-        story_preset = st.selectbox(
-            "اختر سيناريو جاهز أو اكتب قصتك:",
-            [
-                "✍️ قصة خاصة مخصصة",
-                "🌌 Lumina Sci-Fi: رحلة المستقبل (60 ثانية)",
-                "⚔️ Lumina Mystery: أسرار القلعة (60 ثانية)",
-                "🕵️ English Narrative: Cyberpunk 2050 (60s)"
-            ]
-        )
-        
-        presets = {
-            "🌌 Lumina Sci-Fi: رحلة المستقبل (60 ثانية)": "في عام 2050، فتحت البشرية أبواب المحيط الرقمي.\nسفن تنطلق نحو مجرات لم يطأها إنسان من قبل.\nأسرار كونية تنتظر من يفك شفرتها.\nرحلة لا عودة فيها نحو المستقبل.\nهل أنت مستعد لاكتشاف الحقيقة؟",
-            "⚔️ Lumina Mystery: أسرار القلعة (60 ثانية)": "كانت الغابة تطوي سرها بين الأشجار الكثيفة.\nصوت غريب ينادي من بين الضباب.\nكل خطوة تقربنا من الكنز المفقود.\nرحلة مليئة بالغموض والإثارة.\nاكتشف السر قبل فوات الأوان.",
-            "🕵️ English Narrative: Cyberpunk 2050 (60s)": "Deep inside the digital metropolis lies a secret code.\nEvery generation holds a unique power.\nStep into the future of artificial intelligence.\nAre you ready to unlock the ultimate journey?"
-        }
+# التبويب 2: تحرير السكريبت يدوياً
+with tab_manual:
+    st.subheader("✍️ تحرير نصوص السكريبت والمشاهد يدوياً")
+    manual_script = st.text_area(
+        "أدخل نصوص المشاهد (كل سطر يصنع مشهداً وصوراً متزامنة):",
+        value="في عام 2050، فتحت البشرية أبواب المحيط الرقمي.\nسفن تنطلق نحو مجرات لم يطأها إنسان من قبل.\nأسرار كونية تنتظر من يفك شفرتها.\nرحلة لا عودة فيها نحو المستقبل.\nهل أنت مستعد لاكتشاف الحقيقة؟",
+        height=160
+    )
 
-        default_text = presets.get(story_preset, "أدخل الجمل هنا.\nكل جملة في سطر تصنع مشهداً سينمائياً جديداً.")
-        script_input = st.text_area("نص السكريبت:", value=default_text, height=140)
+# التبويب 3: المنصات والأبعاد
+with tab_platforms:
+    st.subheader("📐 الأبعاد المتاحة وخصائص المنصات")
+    st.markdown("""
+    * **🎵 TikTok & Reels (9:16):** 1080x1920 (أفضل مقاس للفيديوهات العمودية القصيرة)
+    * **🔴 YouTube Longform (16:9):** 1920x1080 (أفضل مقاس للشاشات الكبيرة والمحتوى السينمائي)
+    * **📸 Instagram Feed (1:1):** 1080x1080 (مقاس مربع متوافق مع كافة التغذيات)
+    * **📸 Instagram Story (4:5):** 1080x1350 (بورتريه ملائم للإعلانات)
+    """)
 
-    st.markdown("---")
+# التبويب 4: خطط ونماذج Lumina
+with tab_models:
+    st.subheader("⚡ محركات الذكاء الاصطناعي المدمجة في Lumina AI")
+    st.markdown("""
+    - **Seedance 2.5:** محرك توليد الفيديو السينمائي عالي الجودة.
+    - **Seedream 5.0 Pro:** محرك توليد الصور والخلفيات الذكية.
+    - **OmniHuman 1.5:** محرك الشخصيات والمتحدثين الرقميين.
+    - **GPT-4o Mini:** محرك صياغة السكريبتات والتحليل النصي.
+    """)
 
-    if st.button("⚡ توليد فيديو Seedance 2.5 (60s Lumina Video)"):
-        lines = [l.strip() for l in script_input.split("\n") if l.strip()]
-        
-        if not lines:
-            st.error("يرجى كتابة نص السكريبت أولاً!")
-        else:
-            progress_bar = st.progress(0)
-            status_box = st.empty()
-            
-            try:
-                sub_clips = []
-                audio_clips = []
-                temp_files = []
-                total_lines = len(lines)
-                
-                for i, line in enumerate(lines):
-                    status_box.markdown(f"**🎬 جاري بناء المشهد السينمائي ({i+1}/{total_lines}) بمحرك Lumina...**")
-                    
-                    # الصوت
-                    audio_file = f"voice_lumina_{i}.mp3"
-                    tts = gTTS(text=line, lang=lang_code, tld=tld_val)
-                    tts.save(audio_file)
-                    temp_files.append(audio_file)
-                    
-                    a_clip = AudioFileClip(audio_file)
-                    line_duration = a_clip.duration
-                    audio_clips.append(a_clip)
+st.markdown("---")
 
-                    # الخلفية
-                    bg_img = fetch_lumina_background(width, height, i)
-                    bg_clip = ImageClip(np.array(bg_img)).set_duration(line_duration)
+# إعدادات الأبعاد والصوت للتوليد
+plat_choice = plat_gpt if 'plat_gpt' in locals() else "🎵 TikTok / Shorts / Reels (9:16)"
+voice_choice = voice_gpt if 'voice_gpt' in locals() else "🇸🇦 العربية - لهجة سعودية / خليجية"
 
-                    # النص السينمائي المتراكب فوق الصورة
-                    txt_np = render_lumina_text(line, lang=lang_code, width=width, height=height, font_color=text_color)
-                    txt_clip = ImageClip(txt_np).set_duration(line_duration)
+if "9:16" in plat_choice: width, height = 1080, 1920
+elif "16:9" in plat_choice: width, height = 1920, 1080
+elif "1:1" in plat_choice: width, height = 1080, 1080
+else: width, height = 1080, 1350
 
-                    # التركيب
-                    scene = CompositeVideoClip([bg_clip, txt_clip]).set_audio(a_clip)
-                    sub_clips.append(scene)
-                    
-                    progress_bar.progress(int(((i + 1) / total_lines) * 85))
+voice_map = {
+    "🇸🇦 العربية - لهجة سعودية / خليجية": ('ar', 'com.sa'),
+    "🇪🇬 العربية - لهجة مصرية": ('ar', 'com.eg'),
+    "🌐 العربية - الفصحى القياسية": ('ar', 'com'),
+    "🇺🇸 English - US Male/Female": ('en', 'com'),
+    "🇬🇧 English - UK British": ('en', 'co.uk'),
+    "🇫🇷 French - Français": ('fr', 'fr'),
+    "🇪🇸 Spanish - Español": ('es', 'es')
+}
+lang_code, tld_val = voice_map.get(voice_choice, ('ar', 'com'))
 
-                status_box.markdown("**⚡ جاري رندر ومعالجة أبعاد الفيديو النهائية...**")
-                final_video = concatenate_videoclips(sub_clips)
-                output_file = "lumina_seedance_output.mp4"
-                final_video.write_videofile(output_file, fps=24, codec='libx264', audio_codec='aac')
-
-                progress_bar.progress(100)
-                status_box.empty()
-                
-                for c in audio_clips: c.close()
-                for f in temp_files:
-                    if os.path.exists(f): os.remove(f)
-
-                st.balloons()
-                st.success("✨ تم إنشاء الفيديو وقصة الـ 60 ثانية بنجاح!")
-                st.video(output_file)
-
-            except Exception as e:
-                st.error(f"حدث خطأ أثناء الإنشاء: {str(e)}")
-
-with tab_image:
-    st.subheader("🖼️ Seedream 5.0 Pro - محرك توليد الصور السينمائية")
-    st.info("مولد الصور عالي الدقة المدمج للتصاميم والرسم الرقمي")
-    img_prompt = st.text_input("أدخل وصف الصورة (Prompt):", "A cyberpunk futuristic cityscape at night, cinematic lighting, 8k render")
-    img_ratio = st.radio("نسبة الأبعاد:", ["9:16", "16:9", "1:1"], horizontal=True)
+# زر الإنتاج الرئيسي
+if st.button("🚀 إنشاء قصة وفيديو Lumina AI (60s) الآن"):
+    status_box = st.empty()
+    progress_bar = st.progress(0)
     
-    if st.button("✨ توليد الصورة باستخدام Seedream 5.0"):
-        w, h = (1080, 1920) if img_ratio == "9:16" else (1920, 1080) if img_ratio == "16:9" else (1080, 1080)
-        generated_img = fetch_lumina_background(w, h, seed=999)
-        st.image(generated_img, caption="نتيجة Seedream 5.0 Pro", use_container_width=True)
+    # 1. توليد أو تجهيز النص
+    status_box.markdown("**🤖 Step 1: جاري صياغة السكريبت بواسطة ChatGPT...**")
+    if topic_input and len(topic_input.strip()) > 0:
+        script_text = generate_chatgpt_script(topic_input, openai_api_key)
+    else:
+        script_text = manual_script
+        
+    lines = [l.strip() for l in script_text.split("\n") if l.strip()]
+    
+    if not lines:
+        st.error("يرجى إدخال موضوع أو سكريبت أولاً!")
+    else:
+        try:
+            sub_clips = []
+            audio_clips = []
+            temp_files = []
+            total_lines = len(lines)
+            
+            for i, line in enumerate(lines):
+                status_box.markdown(f"**🎨 Step 2: معالجة المشهد ({i+1}/{total_lines}) مع تركيب الصوت والنص على الصورة...**")
+                
+                # إنشاء الصوت
+                audio_file = f"lumina_v12_{i}.mp3"
+                tts = gTTS(text=line, lang=lang_code, tld=tld_val)
+                tts.save(audio_file)
+                temp_files.append(audio_file)
+                
+                a_clip = AudioFileClip(audio_file)
+                line_dur = a_clip.duration
+                audio_clips.append(a_clip)
 
-with tab_avatar:
-    st.subheader("🗣️ OmniHuman 1.5 - صنع المتحدث الرقمي الذكي")
-    st.write("قم بتثبيت صور الأبطال والشخصيات للتعليق الصوتي التلقائي.")
-    st.file_uploader("ارفع صورة الشخصية (JPG/PNG):", type=["jpg", "png", "jpeg"])
-    st.text_area("نص كلام الشخصية الرقمية:")
+                # جلب الصورة السينمائية
+                bg_img = get_lumina_background(width, height, i)
+                bg_clip = ImageClip(np.array(bg_img)).set_duration(line_dur)
 
-with tab_pricing:
-    st.subheader("💳 خطط الاشتراكات والأسعار (Lumina Pro Pricing)")
-    col_p1, col_p2, col_p3 = st.columns(3)
-    with col_p1:
-        st.markdown("""
-        <div class="model-card">
-            <h3>Starter</h3>
-            <h2>$0 <span style="font-size: 1rem;">/ شهر</span></h2>
-            <p>7 دقائق تجريبية شهرياً</p>
-            <p>دقة 480p / 720p</p>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_p2:
-        st.markdown("""
-        <div class="model-card" style="border-color: #ec4899;">
-            <span class="badge-lumina">POPULAR</span>
-            <h3>Lumina VIP</h3>
-            <h2>$29 <span style="font-size: 1rem;">/ شهر</span></h2>
-            <p>Seedance 2.5 4K فيديو</p>
-            <p>توليد فيديوهات 60s غير محدودة</p>
-        </div>
-        """, unsafe_allow_html=True)
-    with col_p3:
-        st.markdown("""
-        <div class="model-card">
-            <h3>Enterprise API</h3>
-            <h2>Custom</h2>
-            <p>ربط API مباشر مع السيرفر</p>
-            <p>دعم فني وتوليد فوري</p>
-        </div>
-        """, unsafe_allow_html=True)
+                # رسم النص الواضح جداً فوق الصورة
+                txt_np = render_lumina_text(line, lang=lang_code, width=width, height=height, font_color="yellow")
+                txt_clip = ImageClip(txt_np).set_duration(line_dur)
+
+                # دمج المشهد
+                scene = CompositeVideoClip([bg_clip, txt_clip]).set_audio(a_clip)
+                sub_clips.append(scene)
+                
+                progress_bar.progress(int(((i + 1) / total_lines) * 85))
+
+            status_box.markdown("**⚡ Step 3: جاري الرندر النهائي وتصدير قصة الـ 60 ثانية...**")
+            final_video = concatenate_videoclips(sub_clips)
+            output_file = "lumina_v12_final.mp4"
+            final_video.write_videofile(output_file, fps=24, codec='libx264', audio_codec='aac')
+
+            progress_bar.progress(100)
+            status_box.empty()
+            
+            # التنظيف
+            for c in audio_clips: c.close()
+            for f in temp_files:
+                if os.path.exists(f): os.remove(f)
+
+            st.balloons()
+            st.success("✨ تم توليد الفيديو السينمائي بنجاح!")
+            st.video(output_file)
+
+        except Exception as e:
+            st.error(f"حدث خطأ أثناء الإنشاء: {str(e)}")
