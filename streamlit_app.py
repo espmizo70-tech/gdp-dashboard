@@ -1,27 +1,29 @@
 import streamlit as st
 import os
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from gtts import gTTS
-from moviepy.editor import ImageClip, CompositeVideoClip, ColorClip, AudioFileClip
+from moviepy.editor import ImageClip, CompositeVideoClip, ColorClip, AudioFileClip, concatenate_videoclips, concatenate_audioclips
+import arabic_reshaper
+from bidi.algorithm import get_display
 
-st.set_page_config(page_title="منصة صناعة الفيديوهات V5 Pro", page_icon="🎬", layout="wide")
+st.set_page_config(page_title="منصة صناعة الفيديوهات V6", page_icon="🎬", layout="wide")
 
-st.title("🎬 منصة صناعة الفيديوهات الاحترافية V5 Pro")
-st.write("قم بتخصيص السكريبت والألوان لإنشاء مقاطع Shorts جاهزة بدون مشاكل رندر.")
+st.title("🎬 منصة صناعة الفيديوهات V6 - مزامنة النصوص المباشرة")
+st.write("عرض كل جملة تلقائياً بالتزامن مع توقيت نطقها في التعليق الصوتي.")
 
-# دالة إنشاء صورة النص الشفافة بديل ImageMagick
-def create_text_image(text, size=(900, 500), font_size=50, text_color="yellow"):
+def create_text_image(text, size=(900, 500), text_color="yellow"):
+    # تصحيح تباعد واتجاه الأحرف العربية
+    reshaped_text = arabic_reshaper.reshape(text)
+    bidi_text = get_display(reshaped_text)
+    
     img = Image.new('RGBA', size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    
-    # تحويل اسم اللون لتركيب RGB
     color_rgb = (255, 255, 0, 255) if text_color == "yellow" else (255, 255, 255, 255)
     
-    # رسم النص في المنتصف
     draw.multiline_text(
         (size[0] // 2, size[1] // 2),
-        text,
+        bidi_text,
         fill=color_rgb,
         anchor="mm",
         align="center"
@@ -34,51 +36,59 @@ with col1:
     st.subheader("⚙️ إعدادات التصميم")
     bg_option = st.selectbox("لون الخلفية:", ["كحلي داكن", "أسود كلاسيكي"])
     bg_color = (15, 23, 42) if bg_option == "كحلي داكن" else (0, 0, 0)
-    
-    text_color_choice = st.selectbox("لون النص:", ["yellow", "white"])
+    text_color_choice = st.selectbox("لون النص المتراكب:", ["yellow", "white"])
 
 with col2:
-    st.subheader("📝 السكريبت")
+    st.subheader("📝 سكريبت الفيديو")
     default_text = "في أعماق الغابة السحرية، كان هناك سر محبوس.\nرحلة تبحث عن الإجابات المنتظرة.\nاكتشف الحقيقة قبل فوات الأوان."
-    user_script = st.text_area("أدخل جمل السكريبت:", value=default_text, height=180)
+    user_script = st.text_area("أدخل الجمل (كل جملة في سطر مستقل):", value=default_text, height=180)
 
-if st.button("🚀 إنشاء الفيديو الاحترافي الآن", use_container_width=True):
+if st.button("🚀 إنشاء الفيديو المتزامن الآن", use_container_width=True):
     lines = [line.strip() for line in user_script.split("\n") if line.strip()]
     
     if not lines:
-        st.error("يرجى إدخال السكريبت أولاً!")
+        st.error("يرجى إدخال نص السكريبت أولاً!")
     else:
-        with st.spinner("جاري معالجة الصوت ورندر الفيديو..."):
+        with st.spinner("جاري تقطيع الصوت ورندر المشاهد جملة بجملة..."):
             try:
-                full_text = "\n".join(lines)
-                audio_file = "voice_temp.mp3"
-                output_video = "final_short.mp4"
-                
-                # 1. توليد الصوت
-                tts = gTTS(text=" ".join(lines), lang='ar')
-                tts.save(audio_file)
-                
-                # 2. احتساب التوقيت
-                audio_clip = AudioFileClip(audio_file)
-                video_duration = audio_clip.duration
-                
-                # 3. خلفية الفيديو (1080x1920)
-                bg_clip = ColorClip(size=(1080, 1920), color=bg_color, duration=video_duration)
-                
-                # 4. تراكب النص باستخدام PIL (تجاوز ImageMagick)
-                text_np = create_text_image(full_text, text_color=text_color_choice)
-                txt_clip = ImageClip(text_np).set_position('center').set_duration(video_duration)
-                
-                # 5. التصدير النهائي
-                final_clip = CompositeVideoClip([bg_clip, txt_clip]).set_audio(audio_clip)
-                final_clip.write_videofile(output_video, fps=24, codec='libx264', audio_codec='aac')
-                
-                audio_clip.close()
-                if os.path.exists(audio_file):
-                    os.remove(audio_file)
+                sub_clips = []
+                audio_clips = []
+                temp_files = []
 
-                st.success("🎬 تم رندر الفيديو بنجاح!")
-                st.video(output_video)
+                for i, line in enumerate(lines):
+                    # 1. توليد صوت لكل جملة
+                    audio_filename = f"temp_voice_{i}.mp3"
+                    tts = gTTS(text=line, lang='ar')
+                    tts.save(audio_filename)
+                    temp_files.append(audio_filename)
+                    
+                    # 2. احتساب مدة نطق الجملة
+                    audio_clip = AudioFileClip(audio_filename)
+                    line_duration = audio_clip.duration
+                    audio_clips.append(audio_clip)
+
+                    # 3. إنشاء مشهد النص المستقل لهذه الجملة
+                    bg_clip = ColorClip(size=(1080, 1920), color=bg_color, duration=line_duration)
+                    text_np = create_text_image(line, text_color=text_color_choice)
+                    txt_clip = ImageClip(text_np).set_position('center').set_duration(line_duration)
+                    
+                    combined_sub = CompositeVideoClip([bg_clip, txt_clip]).set_audio(audio_clip)
+                    sub_clips.append(combined_sub)
+
+                # 4. دمج كافة المشاهد الصوتية والمرئية بالتسلسل
+                final_video = concatenate_videoclips(sub_clips)
+                output_path = "final_synced_short.mp4"
+                final_video.write_videofile(output_path, fps=24, codec='libx264', audio_codec='aac')
+
+                # تنظيف الملفات المؤقتة
+                for clip in audio_clips:
+                    clip.close()
+                for file_path in temp_files:
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+
+                st.success("🎬 تم إنشاء الفيديو المتزامن بنجاح!")
+                st.video(output_path)
 
             except Exception as e:
-                st.error(f"حدث خطأ أثناء الإنشاء: {str(e)}")
+                st.error(f"حدث خطأ أثناء التوليد: {str(e)}")
