@@ -6,7 +6,7 @@ import edge_tts
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 
-# استيراد متوافق مع جميع إصدارات MoviePy
+# استيراد متوافق مع كافة إصدارات MoviePy 1.x و 2.x
 try:
     from moviepy.editor import ImageClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips, AudioArrayClip
 except ImportError:
@@ -21,6 +21,30 @@ except ImportError:
         from moviepy.audio.io.AudioFileClip import AudioFileClip
         from moviepy.audio.AudioClip import CompositeAudioClip, AudioArrayClip
         from moviepy.video.compositing.concatenate import concatenate_videoclips
+
+# دوال توافقية بين MoviePy v1 و MoviePy v2 لمنع AttributeError
+def set_duration(clip, d):
+    if hasattr(clip, "with_duration"):
+        return clip.with_duration(d)
+    return clip.set_duration(d)
+
+def set_audio(clip, a):
+    if hasattr(clip, "with_audio"):
+        return clip.with_audio(a)
+    return clip.set_audio(a)
+
+def apply_resize(clip, resize_func):
+    if hasattr(clip, "resized"):
+        try:
+            return clip.resized(resize_func)
+        except Exception:
+            pass
+    if hasattr(clip, "resize"):
+        try:
+            return clip.resize(resize_func)
+        except Exception:
+            pass
+    return clip
 
 # دعم اللغة العربية
 try:
@@ -163,21 +187,29 @@ if st.button("🚀 إنتاج الفيديو النهائي"):
                 process_frame(raw_img, sentence, channel_watermark, final_img)
                 
                 audio_clip = AudioFileClip(audio_file)
-                img_clip = ImageClip(final_img).set_duration(audio_clip.duration).set_audio(audio_clip)
                 
-                # حركة زوم ناعمة
-                img_clip = img_clip.resize(lambda t: 1 + 0.07 * (t / audio_clip.duration))
+                # استخدام دوال التوافق
+                img_clip = ImageClip(final_img)
+                img_clip = set_duration(img_clip, audio_clip.duration)
+                img_clip = set_audio(img_clip, audio_clip)
+                img_clip = apply_resize(img_clip, lambda t: 1 + 0.07 * (t / audio_clip.duration))
+                
                 clips.append(img_clip)
-                
                 progress_bar.progress((i + 1) / len(sentences))
             
             st.write("🎞️ جاري رندر وتجميع الفيديو مع الموسيقى...")
-            final_video = concatenate_videoclips(clips, method="compose")
+            try:
+                final_video = concatenate_videoclips(clips, method="compose")
+            except Exception:
+                final_video = concatenate_videoclips(clips)
             
             if bgm_option:
-                bgm_clip = make_simple_bgm(final_video.duration)
-                combined_audio = CompositeAudioClip([final_video.audio, bgm_clip])
-                final_video = final_video.set_audio(combined_audio)
+                try:
+                    bgm_clip = make_simple_bgm(final_video.duration)
+                    combined_audio = CompositeAudioClip([final_video.audio, bgm_clip])
+                    final_video = set_audio(final_video, combined_audio)
+                except Exception as e:
+                    st.warning("تم تصدير الفيديو بالصوت الأصلي.")
                 
             final_video.write_videofile("ultimate_autoshort.mp4", fps=24, codec="libx264", audio_codec="aac")
             
