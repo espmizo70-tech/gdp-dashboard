@@ -1,9 +1,8 @@
+fastapi
+uvicorn
 streamlit
-moviepy==1.0.3
-edge-tts
-Pillow
-numpy
-arabic_reshaper
-python-bidi
 requests
-openai
+pydantic
+moviepy
+pillow
+python-multipart
