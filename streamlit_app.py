@@ -1,15 +1,13 @@
 import streamlit as st
 import config
 import ai_engine
-import requests
-import time
 
-# إعدادات الصفحة
+# إعداد الصفحة
 st.set_page_config(
-    page_title="Lumina AI Platform",
+    page_title="Lumina AI Studio",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # إدارة حالة اللغة والجلوس
@@ -18,70 +16,67 @@ if 'lang' not in st.session_state:
 
 if 'gallery_images' not in st.session_state:
     st.session_state.gallery_images = [
-        {"title": "Cyberpunk City", "url": "https://image.pollinations.ai/prompt/cyberpunk%20futuristic%20city%20neon%20lights?width=600&height=400"},
-        {"title": "Arabian Knight", "url": "https://image.pollinations.ai/prompt/ancient%20arabian%20warrior%20cinematic%20lighting?width=600&height=400"},
-        {"title": "Space Explorer", "url": "https://image.pollinations.ai/prompt/astronaut%20discovering%20alien%20planet?width=600&height=400"}
+        {"title": "مدينة المستقبل", "url": "https://image.pollinations.ai/prompt/cyberpunk%20futuristic%20city%20neon%20lights?width=600&height=400"},
+        {"title": "فارس عربي", "url": "https://image.pollinations.ai/prompt/ancient%20arabian%20warrior%20cinematic%20lighting?width=600&height=400"},
+        {"title": "رائد فضاء", "url": "https://image.pollinations.ai/prompt/astronaut%20discovering%20alien%20planet?width=600&height=400"}
     ]
 
-# اختيار اللغة من القائمة الجانبية
+# قائمة الإعدادات واللغة
 with st.sidebar:
-    st.image("https://img.icons8.com/fluency/96/brain.png", width=70)
-    st.title("🌐 Settings / الإعدادات")
-    selected_lang = st.selectbox(
-        "اللغة / Language",
-        options=["العربية", "English"],
-        index=0 if st.session_state.lang == 'ar' else 1
-    )
+    st.title("⚙️ الإعدادات / Settings")
+    selected_lang = st.selectbox("اختر اللغة / Select Language", ["العربية", "English"])
     st.session_state.lang = 'ar' if selected_lang == "العربية" else 'en'
 
 t = config.TRANSLATIONS[st.session_state.lang]
-is_rtl = (st.session_state.lang == 'ar')
 
-# تصميم الواجهة الأنيق
-st.markdown(f"""
+# تحسين التصميم ومنع تداخل النصوص في الهواتف
+st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
     
-    html, body, [class*="css"] {{
+    html, body, div, span, h1, h2, h3, p {
         font-family: 'Cairo', sans-serif !important;
-        direction: {"rtl" if is_rtl else "ltr"};
-        text-align: {"right" if is_rtl else "left"};
-        background-color: #090d16 !important;
-        color: #f1f5f9 !important;
-    }}
+    }
     
-    .main-header {{
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    /* تصميم الهيدر الاحترافي */
+    .hero-card {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        padding: 25px;
-        margin-bottom: 25px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }}
-    .main-title {{
-        font-size: 32px; font-weight: 900;
-        background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }}
-    
-    .stTabs [data-baseweb="tab-list"] {{
-        gap: 10px; background: #0f172a; padding: 8px; border-radius: 14px;
-    }}
-    .stTabs [data-baseweb="tab"] {{
-        border-radius: 10px; color: #94a3b8 !important; font-weight: 700 !important;
-    }}
-    .stTabs [aria-selected="true"] {{
-        background: linear-gradient(135deg, #0072ff 0%, #00c6ff 100%) !important;
-        color: #fff !important;
-    }}
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .hero-title {
+        color: #00f2fe;
+        font-size: 24px;
+        font-weight: 900;
+        margin: 0;
+    }
+    .hero-sub {
+        color: #94a3b8;
+        font-size: 13px;
+        margin-top: 5px;
+    }
+
+    /* تحسين زر التوليد */
+    .stButton > button {
+        background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%) !important;
+        color: #000 !important;
+        font-weight: 800 !important;
+        border-radius: 10px !important;
+        border: none !important;
+        width: 100%;
+        padding: 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# الهيدر الرئيسي
+# واجهة الرأس
 st.markdown(f"""
-<div class="main-header">
-    <div class="main-title">{t["title"]}</div>
-    <div style="color: #94a3b8; font-size: 15px;">{t["subtitle"]}</div>
+<div class="hero-card">
+    <div class="hero-title">⚡ {t["title"]}</div>
+    <div class="hero-sub">{t["subtitle"]}</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -93,56 +88,47 @@ tab1, tab2, tab3, tab4 = st.tabs([
     t["tab_gallery"]
 ])
 
-# 1️⃣ تبويب شات الذكاء الاصطناعي (ChatGPT)
+# 1️⃣ الشات الذكي (ChatGPT)
 with tab1:
     st.subheader(t["tab_chat"])
-    user_prompt = st.text_area(t["prompt_label"], height=100, placeholder="مثال: اكتب لي سيناريو فيديو قصير عن أهمية الذكاء الاصطناعي...")
+    user_prompt = st.text_area(t["prompt_label"], height=100, placeholder="اكتب سؤالك أو اطلب كوداً وسيناريو...")
     if st.button(t["generate_btn"], key="chat_btn"):
         if user_prompt.strip():
-            with st.spinner("جاري التفكير والتوليد..." if is_rtl else "Thinking..."):
-                ai_response = ai_engine.generate_ai_text(user_prompt, st.session_state.lang)
-                st.markdown("### 🤖 النتيجة:")
-                st.info(ai_response)
+            with st.spinner("جاري التوليد..."):
+                res = ai_engine.generate_ai_text(user_prompt, st.session_state.lang)
+                st.info(res)
         else:
-            st.warning("يرجى كتابة نص أولاً!" if is_rtl else "Please enter text first!")
+            st.warning("يرجى إدخال نص أولاً!")
 
-# 2️⃣ تبويب استوديو الفيديوهات
+# 2️⃣ استوديو الفيديوهات
 with tab2:
     st.subheader(t["tab_studio"])
     col1, col2 = st.columns(2)
     with col1:
-        aspect = st.selectbox(t["aspect_ratio"], ["9:16 (TikTok/Reels)", "16:9 (YouTube)", "1:1 (Instagram)"])
-        voice = st.selectbox(t["voice_label"], ["شاكر - وثائقي", "سلمى - حماسي", "حامد - إخباري"])
+        st.selectbox(t["aspect_ratio"], ["9:16 (TikTok/Reels)", "16:9 (YouTube)"])
     with col2:
-        proj_name = st.text_input("اسم المشروع:", "فيديو_جديد")
-        num_scenes = st.slider("عدد المشاهد:", 1, 5, 2)
-    
-    st.markdown("---")
-    if st.button(t["render_btn"], key="vid_btn"):
-        st.success("جاري تجهيز السيرفر لبدء رندر الفيديو..." if is_rtl else "Preparing server for video render...")
+        st.selectbox(t["voice_label"], ["شاكر - وثائقي", "سلمى - حماسي"])
+    st.button(t["render_btn"], key="vid_btn")
 
-# 3️⃣ تبويب توليد الصور بالـ AI
+# 3️⃣ مولد الصور
 with tab3:
     st.subheader(t["tab_images"])
-    img_prompt = st.text_input(t["image_prompt"], placeholder="A futuristic arabic castle in desert, cinematic lighting, 8k resolution")
-    
+    img_prompt = st.text_input(t["image_prompt"], placeholder="A futuristic lion warrior, cinematic, 8k")
     if st.button(t["generate_img_btn"], key="img_btn"):
         if img_prompt.strip():
-            with st.spinner("جاري رسم الصورة بالذكاء الاصطناعي..." if is_rtl else "Generating AI Image..."):
-                generated_url = ai_engine.generate_ai_image_url(img_prompt)
-                st.image(generated_url, caption=img_prompt, use_column_width=True)
-                
-                # إضافتها تلقائياً إلى معرض أعمال الزوار
-                st.session_state.gallery_images.insert(0, {"title": img_prompt[:30], "url": generated_url})
-                st.success("تمت إضافة الصورة بنجاح للمعرض العام!" if is_rtl else "Added to public showcase gallery!")
+            with st.spinner("جاري الرسم..."):
+                img_url = ai_engine.generate_ai_image_url(img_prompt)
+                st.image(img_url, caption=img_prompt, use_container_width=True)
+                st.session_state.gallery_images.insert(0, {"title": img_prompt[:25], "url": img_url})
+                st.success("تم التوليد وإضافة الصورة لمعرض الأعمال!")
         else:
-            st.warning("يرجى كتابة وصف للصورة!" if is_rtl else "Please enter an image description!")
+            st.warning("يرجى إدخال وصف للصورة!")
 
-# 4️⃣ تبويب معرض أعمال الزوار (Public Showcase)
+# 4️⃣ معرض أعمال الزوار (تم إصلاح خطأ use_container_width هنا)
 with tab4:
     st.subheader(t["gallery_title"])
     cols = st.columns(3)
-    for index, item in enumerate(st.session_state.gallery_images):
-        with cols[index % 3]:
-            st.image(item["url"], use_column_width=True)
-            st.caption(f"🎨 {item['title']}")
+    for idx, item in enumerate(st.session_state.gallery_images):
+        with cols[idx % 3]:
+            if isinstance(item, dict) and "url" in item:
+                st.image(item["url"], caption=item.get("title", ""), use_container_width=True)
