@@ -1,38 +1,36 @@
-# config.py - نظام ترجمة الموقع واللغات المتعددة
 
+# config.py - نظام الترجمة والنصوص
 TRANSLATIONS = {
     "ar": {
-        "title": "⚡ منصة لومينا للذكاء الاصطناعي",
-        "subtitle": "استوديو احترافي لتوليد المحتوى والفيديوهات بالذكاء الاصطناعي",
+        "title": "LUMINA AI PLATFORM",
+        "subtitle": "المنصة الذكية الشاملة لإنتاج المحتوى بالذكاء الاصطناعي",
         "tab_chat": "🤖 المساعد الذكي (ChatGPT)",
         "tab_studio": "🎬 استوديو الفيديوهات",
-        "tab_images": "🖼️ توليد الصور بالـ AI",
-        "tab_gallery": "🌟 معرض أعمال الزوار",
-        "prompt_label": "اكتب فكرة الفيديوهات أو اطلب مساعدة:",
-        "generate_btn": "توليد بالذكاء الاصطناعي",
-        "image_prompt": "وصف الصورة التي تريد رسمها:",
-        "generate_img_btn": "رسم الصورة الآن 🎨",
-        "gallery_title": "🖼️ آخر إبداعات المستخدمين",
-        "lang_selector": "اختر اللغة / Select Language:",
+        "tab_images": "🎨 توليد الصور AI",
+        "tab_gallery": "🖼️ معرض الإبداعات",
+        "prompt_label": "اكتب فكرة أو سؤالاً للمساعد الذكي:",
+        "generate_btn": "توليد الاستجابة 🚀",
+        "image_prompt": "وصف الصورة المطلوبة بالتفصيل:",
+        "generate_img_btn": "إنشاء الصورة 🎨",
+        "gallery_title": "🌟 آخر التصاميم المولدة بواسطة المستخدمين",
         "aspect_ratio": "مقاس الفيديو:",
-        "voice_label": "اختر المعلق الصوتي:",
+        "voice_label": "نبرة التعليق الصوتي:",
         "render_btn": "🚀 استخراج الفيديو النهائي"
     },
     "en": {
-        "title": "⚡ Lumina AI Studio",
-        "subtitle": "Professional AI Content & Video Generation Platform",
+        "title": "LUMINA AI PLATFORM",
+        "subtitle": "All-in-One AI Content & Video Generation Platform",
         "tab_chat": "🤖 AI Assistant (ChatGPT)",
         "tab_studio": "🎬 Video Studio",
-        "tab_images": "🖼️ AI Image Generator",
-        "tab_gallery": "🌟 Public Showcase",
-        "prompt_label": "Enter your video idea or ask for help:",
-        "generate_btn": "Generate with AI",
-        "image_prompt": "Describe the image you want to create:",
+        "tab_images": "🎨 AI Image Generator",
+        "tab_gallery": "🖼️ Showcase Gallery",
+        "prompt_label": "Enter your prompt or question:",
+        "generate_btn": "Generate Response 🚀",
+        "image_prompt": "Detailed Image Description:",
         "generate_img_btn": "Generate Image 🎨",
-        "gallery_title": "🖼️ Latest Community Creations",
-        "lang_selector": "Select Language / اختر اللغة:",
+        "gallery_title": "🌟 Community Showcase",
         "aspect_ratio": "Video Aspect Ratio:",
-        "voice_label": "Select Voiceover:",
-        "render_btn": "🚀 Render Final Video"
+        "voice_label": "Voiceover Accent:",
+        "render_btn": "🚀 Render Video"
     }
 }
