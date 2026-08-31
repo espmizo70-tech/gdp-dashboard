@@ -1,8 +1,5 @@
-fastapi
-uvicorn
 streamlit
-requests
-pydantic
 moviepy
+edge-tts
 pillow
-python-multipart
+gTTS
