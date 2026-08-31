@@ -1,122 +1,63 @@
 import streamlit as st
-import config
-import ai_engine
+import local_engine
 
-# إعدادات الصفحة
-st.set_page_config(
-    page_title="LUMINA AI",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+st.set_page_config(page_title="Lumina Studio", page_icon="🎬", layout="wide")
 
-if 'lang' not in st.session_state:
-    st.session_state.lang = 'ar'
-
-if 'gallery_images' not in st.session_state:
-    st.session_state.gallery_images = [
-        {"title": "سيارة مستقبليّة", "url": "https://image.pollinations.ai/prompt/futuristic%20concept%20car%20neon%20lights%208k?width=600&height=400"},
-        {"title": "مدينة ذكية", "url": "https://image.pollinations.ai/prompt/futuristic%20smart%20city%20sunset?width=600&height=400"}
-    ]
-
-# القائمة الجانبية
-with st.sidebar:
-    st.title("⚙️ الإعدادات")
-    selected_lang = st.selectbox("اختر اللغة / Language", ["العربية", "English"])
-    st.session_state.lang = 'ar' if selected_lang == "العربية" else 'en'
-
-t = config.TRANSLATIONS[st.session_state.lang]
-
-# تحسين التصميم للشاشات الصغيرة
+# تصميم خاص وأنيق للموقع
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap');
-    
-    * {
-        font-family: 'Cairo', sans-serif !important;
-    }
-    
-    /* إخفاء القوائم العلوية المزعجة */
-    #MainMenu, footer, header { visibility: hidden; }
-    
-    .app-header {
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+    * { font-family: 'Cairo', sans-serif !important; }
+    .main-box {
         background: #0f172a;
+        padding: 20px;
+        border-radius: 15px;
         border: 1px solid #1e293b;
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 15px;
-        text-align: center;
+        margin-bottom: 20px;
     }
-    
-    .app-title {
-        color: #00f2fe;
-        font-size: 22px;
-        font-weight: 900;
-    }
-    
-    .stButton > button {
-        background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%) !important;
-        color: #000 !important;
-        font-weight: 800 !important;
-        border-radius: 10px !important;
-        border: none !important;
-        width: 100%;
-        padding: 12px !important;
-        margin-top: 10px;
-    }
+    .title-text { color: #00f2fe; font-size: 26px; font-weight: 900; }
 </style>
 """, unsafe_allow_html=True)
 
-# الهيدر الرئيسي
-st.markdown(f"""
-<div class="app-header">
-    <div class="app-title">⚡ {t["title"]}</div>
-    <div style="color: #94a3b8; font-size: 12px;">{t["subtitle"]}</div>
+st.markdown("""
+<div class="main-box">
+    <div class="title-text">🎬 استوديو لومينا المستقل لصنع المحتوى</div>
+    <div style="color: #94a3b8;">منصة خاصة 100% - تعمل داخلياً بدون الحاجة لاشتراكات أو مواقع خارجية</div>
 </div>
 """, unsafe_allow_html=True)
 
-# التبويبات
-tab1, tab2, tab3, tab4 = st.tabs([
-    t["tab_chat"], 
-    t["tab_studio"], 
-    t["tab_images"], 
-    t["tab_gallery"]
-])
+tab1, tab2 = st.tabs(["📝 مولد النصوص المحلي", "🎙️ المعلق الصوتي الداخلي"])
 
-# 1️⃣ شات الذكاء الاصطناعي
+# 1️⃣ توليد سيناريو محلي
 with tab1:
-    st.subheader(t["tab_chat"])
-    user_prompt = st.text_area(t["prompt_label"], height=100, placeholder="اكتب سؤالك هنا...")
-    if st.button(t["generate_btn"], key="chat_btn"):
-        if user_prompt.strip():
-            with st.spinner("جاري التفكير..."):
-                res = ai_engine.generate_ai_text(user_prompt, st.session_state.lang)
-                st.info(res)
-
-# 2️⃣ استوديو الفيديوهات
-with tab2:
-    st.subheader(t["tab_studio"])
-    st.selectbox(t["aspect_ratio"], ["9:16 (TikTok/Reels)", "16:9 (YouTube)"])
-    st.selectbox(t["voice_label"], ["شاكر - وثائقي", "سلمى - حماسي"])
-    st.button(t["render_btn"], key="vid_btn")
-
-# 3️⃣ توليد الصور بالذكاء الاصطناعي (محدث ومترجم)
-with tab3:
-    st.subheader(t["tab_images"])
-    img_prompt = st.text_input(t["image_prompt"], placeholder="مثال: اريد سيارة خيالية سريعة")
+    st.subheader("📝 كتابة سيناريو تلقائي من السيرفر")
+    topic_input = st.text_input("موضوع الفيديو:", placeholder="مثال: الذكاء الاصطناعي، النجاح، صناعة الفيديو")
     
-    if st.button(t["generate_img_btn"], key="img_btn"):
-        if img_prompt.strip():
-            with st.spinner("جاري ترجمة الوصف ورسم الصورة بالضبط..."):
-                img_url = ai_engine.generate_ai_image_url(img_prompt)
-                st.image(img_url, caption=f"🎨 النتيجة لـ: {img_prompt}", use_container_width=True)
-                st.session_state.gallery_images.insert(0, {"title": img_prompt, "url": img_url})
-                st.success("تم التوليد بنجاح وصورة السيارة جاهزة!")
+    if st.button("توليد النص محلياً 🚀"):
+        if topic_input:
+            script = local_engine.generate_local_script(topic_input)
+            st.success("تم توليد النص بنجاح من داخل موقعك:")
+            st.text_area("النص الناتج:", script, height=150)
         else:
-            st.warning("يرجى كتابة وصف للصورة!")
+            st.warning("يرجى كتابة موضوع أولاً!")
 
-# 4️⃣ معرض الأعمال
-with tab4:
-    st.subheader(t["gallery_title"])
-    for item in st.session_state.gallery_images:
-        st.image(item["url"], caption=item["title"], use_container_width=True)
+# 2️⃣ توليد صوت محلي
+with tab2:
+    st.subheader("🎙️ تحويل النص إلى صوت عربي واقعي")
+    text_to_speak = st.text_area("أدخل النص المراد تحويله لصوت:", "مرحباً بكم في موقعنا المستقل لصنع الفيديوهات والصوتيات.")
+    
+    voice_option = st.selectbox("اختر المعلق الصوتي:", [
+        "حامد - سعودي (ar-SA-HamedNeural)",
+        "سلمى - مصري (ar-EG-SalmaNeural)",
+        "شاكر - عماني (ar-OM-ShakirNeural)"
+    ])
+    
+    # استخراج رمز الصوت
+    voice_code = voice_option.split("(")[1].replace(")", "").strip()
+    
+    if st.button("إنشاء الملف الصوتي 🎧"):
+        if text_to_speak:
+            with st.spinner("جاري معالجة الصوت داخل السيرفر..."):
+                audio_file = local_engine.generate_arabic_audio(text_to_speak, "output.mp3", voice_code)
+                st.audio(audio_file, format="audio/mp3")
+                st.success("تم إنشاء الصوت بنجاح بدون الاستعانة بأي موقع خارجي!")
