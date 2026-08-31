@@ -4,23 +4,21 @@ import requests
 import io
 import textwrap
 import asyncio
-import json
 import urllib.parse
 import numpy as np
 import csv
 from datetime import datetime
 
-# 🛠️ إصلاح مشكلة Pillow/ANTIALIAS لضمان عدم حدوث أي أخطاء
+# 🛠️ حل مشكلة Pillow/ANTIALIAS لضمان أقصى استقرار
 import PIL.Image
 if not hasattr(PIL.Image, 'ANTIALIAS'):
     PIL.Image.ANTIALIAS = getattr(PIL.Image, 'Resampling', PIL.Image).LANCZOS
 
-from PIL import Image, ImageDraw, ImageFont, ImageEnhance
+from PIL import Image, ImageDraw, ImageFont, ImageEnhance, ImageFilter
 from moviepy.editor import ImageClip, CompositeVideoClip, AudioFileClip, concatenate_videoclips
 import arabic_reshaper
 from bidi.algorithm import get_display
 
-# فحص المكتبات الخارجية
 try:
     import edge_tts
     HAS_EDGE_TTS = True
@@ -33,15 +31,15 @@ try:
 except ImportError:
     HAS_OPENAI = False
 
-# 1. إعدادات الصفحة والأنماط البصرية الراقية
+# 1. إعدادات الصفحة
 st.set_page_config(
-    page_title="Lumina AI Studio | Ultimate All-In-One Platform",
+    page_title="Lumina AI Studio | Masterpiece Edition",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# تصميم SaaS المظلم والفخم جداً
+# تصميم SaaS زجاجي مع أيقونات شبكات التواصل
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Orbitron:wght@700;900&display=swap');
@@ -49,77 +47,81 @@ st.markdown("""
     * { font-family: 'Cairo', sans-serif; }
     
     .stApp {
-        background: #020408;
-        color: #f8fafc;
+        background: #030712;
+        color: #f9fafb;
     }
     
-    /* Top Header Bar */
+    /* Top Bar */
     .app-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: rgba(15, 23, 42, 0.85);
-        backdrop-filter: blur(25px);
-        border: 1px solid rgba(212, 175, 55, 0.35);
+        background: rgba(17, 24, 39, 0.85);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(212, 175, 55, 0.3);
         border-radius: 20px;
-        padding: 16px 28px;
-        margin-bottom: 20px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+        padding: 18px 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     }
+    
     .app-brand {
         font-family: 'Orbitron', sans-serif;
-        font-size: 2.1rem;
+        font-size: 2.2rem;
         font-weight: 900;
-        background: linear-gradient(90deg, #f39c12, #d4af37, #00f2fe, #a855f7);
+        background: linear-gradient(90deg, #f59e0b, #d4af37, #06b6d4, #a855f7);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
-    .badge-user {
-        background: rgba(212, 175, 55, 0.15);
-        border: 1px solid #d4af37;
-        color: #f39c12;
-        padding: 6px 16px;
-        border-radius: 50px;
-        font-size: 0.88rem;
-        font-weight: 700;
-    }
 
-    /* Auth Login Box */
-    .auth-card {
-        max-width: 520px;
-        margin: 50px auto;
-        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 27, 75, 0.85) 100%);
-        border: 2px solid rgba(212, 175, 55, 0.4);
-        border-radius: 28px;
-        padding: 40px;
-        text-align: center;
-        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 40px rgba(212, 175, 55, 0.2);
-    }
-
-    /* Primary SaaS Buttons */
-    .stButton>button {
-        width: 100%;
-        background: linear-gradient(90deg, #d4af37, #f39c12, #00c6ff, #a855f7);
-        color: #000000;
-        font-size: 1.25rem;
-        font-weight: 900;
-        padding: 0.9rem;
+    /* Platform Logos SVG */
+    .platform-card {
+        background: rgba(31, 41, 55, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 16px;
-        border: none;
-        box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
+        padding: 15px;
+        text-align: center;
+        margin-bottom: 15px;
         transition: all 0.3s ease;
     }
+    .platform-card:hover {
+        border-color: #d4af37;
+        transform: translateY(-3px);
+    }
+
+    /* Auth Box */
+    .auth-card {
+        max-width: 550px;
+        margin: 40px auto;
+        background: rgba(17, 24, 39, 0.9);
+        border: 2px solid rgba(212, 175, 55, 0.4);
+        border-radius: 24px;
+        padding: 40px;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+    }
+
+    /* Buttons */
+    .stButton>button {
+        width: 100%;
+        background: linear-gradient(90deg, #d4af37, #f59e0b, #06b6d4);
+        color: #000000;
+        font-size: 1.2rem;
+        font-weight: 900;
+        padding: 0.85rem;
+        border-radius: 14px;
+        border: none;
+        box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
+    }
     .stButton>button:hover {
-        transform: translateY(-2px) scale(1.005);
-        box-shadow: 0 15px 40px rgba(0, 198, 255, 0.5);
         color: #ffffff;
+        box-shadow: 0 12px 35px rgba(6, 182, 212, 0.5);
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ملف حفظ إيميلات الزوار
+# قاعدة بيانات زوار الموقع
 LEADS_FILE = "registered_leads.csv"
-
 def save_lead(name, email):
     file_exists = os.path.isfile(LEADS_FILE)
     with open(LEADS_FILE, mode="a", newline="", encoding="utf-8") as f:
@@ -128,130 +130,213 @@ def save_lead(name, email):
             writer.writerow(["Timestamp", "Name", "Email"])
         writer.writerow([datetime.now().strftime("%Y-%m-%d %H:%M:%S"), name, email])
 
-# تهيئة الجلسة
 if "user_email" not in st.session_state:
     st.session_state["user_email"] = None
 if "user_name" not in st.session_state:
     st.session_state["user_name"] = None
 
-# بوابة تسجيل دخول الزوار بالبريد الإلكتروني
+# بوابة تسجيل دخول الزوار
 if not st.session_state["user_email"]:
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("""
     <div class="auth-card">
-        <h1 style="color: #fff; margin-bottom: 10px;">⚡ مرحباً بك في منصة LUMINA AI</h1>
-        <p style="color: #94a3b8; font-size: 1.05rem; margin-bottom: 25px;">
-            الاستوديو الشامل لتوليد الصور الاحترافية، الأصوات العربية المتنوعة، الفيديوهات السينمائية والسكريبتات بالذكاء الاصطناعي.
+        <h1 style="color: #fff; margin-bottom: 10px;">⚡ استوديو LUMINA AI الاحترافي</h1>
+        <p style="color: #9ca3af; font-size: 1.05rem; margin-bottom: 20px;">
+            أنشئ فيديوهات سينمائية عالية الجودة بأصوات بشرية وصور فائقة الدقة مخصصة لجميع شبكات التواصل الاجتماعي.
         </p>
     </div>
     """, unsafe_allow_html=True)
     
-    col_c1, col_c2, col_c3 = st.columns([1, 2, 1])
-    with col_c2:
-        input_name = st.text_input("👤 الاسم الكامل / Name:", placeholder="مثال: محمد علي")
-        input_email = st.text_input("📧 البريد الإلكتروني / Email:", placeholder="example@gmail.com")
+    col_a, col_b, col_c = st.columns([1, 2, 1])
+    with col_b:
+        input_name = st.text_input("👤 الاسم الكامل / Name:", placeholder="أحمد علي")
+        input_email = st.text_input("📧 البريد الإلكتروني / Gmail:", placeholder="example@gmail.com")
         
-        if st.button("🔓 دخول وفتح استوديو الذكاء الاصطناعي مجاناً"):
+        if st.button("🔓 دخول وتجربة الاستوديو مجاناً"):
             if not input_email.strip() or "@" not in input_email or "." not in input_email:
-                st.error("⚠️ يرجى إدخال بريد إلكتروني صحيح للتفعيل!")
+                st.error("⚠️ يرجى أدخال بريد إلكتروني صحيح للدخول!")
             else:
                 save_lead(input_name, input_email)
                 st.session_state["user_email"] = input_email
-                st.session_state["user_name"] = input_name if input_name else "زائر زكي"
+                st.session_state["user_name"] = input_name if input_name else "زائر"
                 st.rerun()
     st.stop()
 
 # الهيدر العلوي
 st.markdown(f"""
 <div class="app-header">
-    <div class="app-brand">⚡ LUMINA AI <span style="font-size: 0.95rem; color: #94a3b8; font-weight: 400;">ALL-IN-ONE STUDIO V6.0</span></div>
+    <div class="app-brand">⚡ LUMINA AI <span style="font-size: 0.9rem; color: #9ca3af;">V7.0 ULTRA</span></div>
     <div>
-        <span class="badge-user">👤 {st.session_state['user_name']} ({st.session_state['user_email']})</span>
+        <span style="background: rgba(212,175,55,0.2); border: 1px solid #d4af37; color: #f59e0b; padding: 6px 16px; border-radius: 50px; font-weight: 700;">
+            👤 {st.session_state['user_name']} ({st.session_state['user_email']})
+        </span>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# قائمة الأصوات العربية المتنوعة الضخمة
-ARABIC_VOICES = {
-    "👨‍💼 رجل سعودي - صوت فخم ورصين": "ar-SA-HamedNeural",
-    "👩‍💼 امرأة سعودية - صوت احترافي دافئ": "ar-SA-ZariyahNeural",
-    "🎙️ رجل مصري - وثائقي وغموض": "ar-EG-ShakirNeural",
-    "👩 امرأة مصرية - إخباري وسريع": "ar-EG-SalmaNeural",
-    "🇦🇪 رجل إماراتي - هادئ وسينمائي": "ar-AE-HamdanNeural",
-    "👧 فتاة شابة / طفلة (شامي) - ناعم ولطيف": "ar-SY-AmanyNeural",
-    "👦 طفل / صوت شاب كويتي - حماسي": "ar-KW-FahedNeural",
-    "👩‍🦰 امرأة أردنية - صوت إذاعي ناعم": "ar-JO-SanaNeural",
-    "👨 رجل مغربي - عميق ومميز": "ar-MA-JamalNeural",
-    "🇺🇸 Christopher - US Male Voice": "en-US-ChristopherNeural",
-    "🇬🇧 Sonia - UK Female Voice": "en-GB-SoniaNeural"
-}
-
-# تسجيل الخروج
-if st.sidebar.button("🚪 تسجيل الخروج / تغيير الإيميل"):
+if st.sidebar.button("🚪 تسجيل الخروج"):
     st.session_state["user_email"] = None
     st.rerun()
 
 st.sidebar.markdown("---")
-openai_key = st.sidebar.text_input("🔑 مفتاح OpenAI API (اختياري):", type="password")
+openai_key = st.sidebar.text_input("🔑 مفتاح OpenAI (اختياري):", type="password")
+
+ARABIC_VOICES = {
+    "👨‍💼 رجل سعودي - وثائقي فخم": "ar-SA-HamedNeural",
+    "👩‍💼 امرأة سعودية - ناعم واحترافي": "ar-SA-ZariyahNeural",
+    "🎙️ رجل مصري - إخباري وغموض": "ar-EG-ShakirNeural",
+    "👩 امرأة مصرية - إعلاني وتفاعلي": "ar-EG-SalmaNeural",
+    "🇦🇪 رجل إماراتي - سينمائي هادئ": "ar-AE-HamdanNeural",
+    "👧 فتاة شابة (شامي) - حكايات وأنيميشن": "ar-SY-AmanyNeural",
+    "👦 شاب كويتي - حماسي وسريع": "ar-KW-FahedNeural",
+    "🇺🇸 Christopher - English Cinematic": "en-US-ChristopherNeural"
+}
 
 # ---------------------------------------------------------
-# 🌟 التبويبات الرئيسية لاستوديوهات الذكاء الاصطناعي
+# دالة معالجة الصور والتأكد من عدم وجود شاشة سوداء
 # ---------------------------------------------------------
-tab_video, tab_image, tab_voice, tab_script = st.tabs([
-    "🎬 صانع الفيديوهات (AI Video)", 
-    "🎨 مولد الصور (AI Images)", 
-    "🎙️ الأوصاف والأصوات (AI Voice)", 
-    "✍️ السكريبتات والوصف (AI Script & SEO)"
+def fetch_solid_ai_image(prompt_text, width, height, seed_num):
+    clean_p = urllib.parse.quote(f"cinematic scene, photorealistic 8k, detailed, {prompt_text}")
+    url = f"https://image.pollinations.ai/prompt/{clean_p}?width={width}&height={height}&seed={seed_num}&nologo=true"
+    
+    try:
+        res = requests.get(url, timeout=8)
+        if res.status_code == 200:
+            img = Image.open(io.BytesIO(res.content)).convert('RGB')
+            return img
+    except Exception:
+        pass
+        
+    # صورة احتياطية دافئة ملونة في حال انقطاع الإنترنيت (تمنع الشاشة السوداء)
+    base = Image.new('RGB', (width, height), color=(15, 23, 42))
+    draw = ImageDraw.Draw(base)
+    draw.rectangle([0, 0, width, height], fill=(20, 30, 50))
+    return base
+
+# دالة طباعة الكتابة العربية بدقة عالية
+def create_subtitle_frame(text, width, height):
+    img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    
+    lines = textwrap.wrap(text, width=22 if width < height else 45)
+    wrapped = "\n".join(lines)
+    
+    reshaped = arabic_reshaper.reshape(wrapped)
+    display_text = get_display(reshaped)
+
+    font_size = int(height * 0.04)
+    try:
+        font = ImageFont.truetype("DejaVuSans.ttf", font_size)
+    except Exception:
+        font = ImageFont.load_default()
+
+    cx, cy = width // 2, int(height * 0.78)
+    bbox = draw.multiline_textbbox((cx, cy), display_text, font=font, anchor="mm", align="center")
+    
+    # خلفية زجاجية مع توهج ذهبي حول النص
+    pad_x, pad_y = int(width * 0.04), int(height * 0.02)
+    draw.rounded_rectangle(
+        [bbox[0]-pad_x, bbox[1]-pad_y, bbox[2]+pad_x, bbox[3]+pad_y],
+        radius=16,
+        fill=(10, 15, 28, 220),
+        outline=(212, 175, 55, 255),
+        width=3
+    )
+    
+    draw.multiline_text((cx, cy), display_text, font=font, fill=(255, 255, 255, 255), anchor="mm", align="center")
+    return np.array(img)
+
+# ---------------------------------------------------------
+# الواجهة الرئيسية بالتبويبات ومعرض المعاينة
+# ---------------------------------------------------------
+tab_studio, tab_gallery, tab_images, tab_audio = st.tabs([
+    "🎬 استوديو إنتاج الفيديوهات", 
+    "📺 معرض الفيديوهات الإشهارية", 
+    "🎨 توليد الصور AI", 
+    "🎙️ تحويل النص لصوت"
 ])
 
-# ---------------------------------------------------------
-# TAB 1: استوديو توليد الفيديوهات
-# ---------------------------------------------------------
-with tab_video:
-    st.subheader("🎬 استوديو إنتاج الفيديوهات السينمائية المتكامل")
-    col1, col2 = st.columns([2, 1])
+# 1. قسم صانع الفيديوهات
+with tab_studio:
+    st.subheader("🎯 اختر مقاس الشاشة والمنصة المطلوبة:")
     
-    with col1:
-        v_topic = st.text_input("💡 فكرة الفيديو أو القصة:", "سر الأهرامات المفقودة تحت المحيط")
-        v_niche = st.selectbox(
-            "📚 المجال (Niche):",
-            ["🏛️ وثائقيات تاريخية", "👻 قصص رعب وغموض", "💡 تحفيز وتطوير الذات", "💰 مال وأعمال", "🧸 حكايات أطفال"]
-        )
+    # خيارات المقاسات مع أيقونات الشبكات والإنيميشن
+    col_p1, col_p2, col_p3 = st.columns(3)
     
-    with col2:
-        v_voice_label = st.selectbox("🎙️ صوت الراوي للفيديو:", list(ARABIC_VOICES.keys()), key="v_voice")
+    with col_p1:
+        st.markdown("""
+        <div class="platform-card">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="#00f2fe"><path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743l-.002-.001.002.001a2.895 2.895 0 0 1 3.183-4.51v-3.5a6.329 6.329 0 0 0-5.394 2.217 6.27 6.27 0 0 0-1.42 4.195 6.335 6.335 0 0 0 10.82 4.417 6.3 6.3 0 0 0 1.83-4.48V8.835a8.236 8.236 0 0 0 4.887 1.583V6.973a4.838 4.838 0 0 1-1.49-.287z"/></svg>
+            <h4 style="margin:5px 0;">TikTok / Reels / Shorts</h4>
+            <p style="color:#9ca3af; font-size:0.85rem;">مقاس طولي 9:16 (1080x1920) ممتاز للهواتف</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+    with col_p2:
+        st.markdown("""
+        <div class="platform-card">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="#ff0000"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+            <h4 style="margin:5px 0;">YouTube HD / Cinema</h4>
+            <p style="color:#9ca3af; font-size:0.85rem;">مقاس أفقي 16:9 (1920x1080) للشاشات الكبيرة</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_p3:
+        st.markdown("""
+        <div class="platform-card">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="#e1306c"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+            <h4 style="margin:5px 0;">Instagram Post</h4>
+            <p style="color:#9ca3af; font-size:0.85rem;">مقاس مربع 1:1 (1080x1080) للبوستات</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("---")
+    
+    col_in1, col_in2 = st.columns([2, 1])
+    with col_in1:
+        v_topic = st.text_input("💡 فكرة الفيديو أو القصة السينمائية:", "رحلة مستكشف داخل مدينة مفقودة تحت الأرض")
+        v_ratio = st.selectbox("📐 اختر القياس الدقيق لمنصتك:", [
+            "🎵 TikTok / Shorts / Reels (9:16)", 
+            "🔴 YouTube HD / Cinema (16:9)", 
+            "📸 Instagram Post (1:1)"
+        ])
+        
+    with col_in2:
+        v_voice_label = st.selectbox("🎙️ صوت الراوي المفضل:", list(ARABIC_VOICES.keys()))
         v_voice_id = ARABIC_VOICES[v_voice_label]
-        v_ratio = st.selectbox("📐 أبعاد الفيديو:", ["🎵 TikTok / Shorts (9:16)", "🔴 YouTube HD (16:9)", "📸 Instagram (1:1)"])
 
     if "9:16" in v_ratio: vw, vh = 1080, 1920
     elif "16:9" in v_ratio: vw, vh = 1920, 1080
     else: vw, vh = 1080, 1080
 
-    if st.button("🚀 إنشاء وتوليد الفيديو السينمائي"):
+    if st.button("🚀 إنشاء وتوليد الفيديو الفائق الآن"):
         if not v_topic.strip():
-            st.error("يرجى كتابة فكرة الفيديو أولاً!")
+            st.error("يرجى كتابة عنوان القصة أولاً!")
         else:
-            status_box = st.empty()
+            status = st.empty()
             pbar = st.progress(0)
+            
             try:
-                status_box.markdown("**🧠 Phase 1: جاري كتابة السكريبت...**")
-                # نص سكريبت مبسط
+                status.markdown("**🧠 Phase 1: كتابة أسطر القصة والتناسق الصوتي...**")
+                
+                # أسطر القصة السينمائية المتناسقة
                 lines = [
-                    f"في أعماق هذا العالم، يختبئ سر عجيب حول {v_topic}.",
-                    "حقائق شائقة لم يتم كشفها من قبل للعلن.",
-                    "التفاصيل المفاجئة التي حيرت عقول الخبراء والباحثين.",
-                    "استعد لاستكشاف الحقيقة الكاملة في هذا الفيديو الفريد!"
+                    f"في مكان لم تطأه قدم بشرية من قبل، تبدأ أسطورة {v_topic}.",
+                    "جدران تحكي أسراراً غامضة من طيات الماضي المنسي.",
+                    "كل خطوة للإمام تكشف حقائق لم يتوقعها أحد.",
+                    "استعد للغوص في هذه التجربة الفريدة والشيقة!"
                 ]
                 
                 sub_clips = []
                 audio_clips = []
                 temp_files = []
-                
+                total = len(lines)
+
                 for i, line in enumerate(lines):
-                    status_box.markdown(f"**🎨 Phase 2: إنشاء صورة AI + صوت الراوي للمشهد ({i+1}/{len(lines)})...**")
+                    status.markdown(f"**🎨 Phase 2: توليد الصورة المتقاربة والصوت البشري ({i+1}/{total})...**")
                     
-                    # الصوت
-                    aud_file = f"v_audio_{i}.mp3"
+                    # 1. توليد وتثبيت الصوت
+                    aud_file = f"temp_v_{i}.mp3"
                     asyncio.run(edge_tts.Communicate(line, v_voice_id).save(aud_file)) if HAS_EDGE_TTS else None
                     temp_files.append(aud_file)
                     
@@ -259,176 +344,81 @@ with tab_video:
                     dur = aclip.duration
                     audio_clips.append(aclip)
 
-                    # صورة AI
-                    prompt_enc = urllib.parse.quote(f"cinematic photo, 8k, photorealistic, {v_topic}, scene {i}")
-                    img_url = f"https://image.pollinations.ai/prompt/{prompt_enc}?width={vw}&height={vh}&seed={i*88}&nologo=true"
+                    # 2. توليد صورة AI مطابقة تماماً للمشهد والمقاس
+                    img_obj = fetch_solid_ai_image(f"{v_topic}, {line}", vw, vh, seed_num=(i+1)*123)
                     
-                    try:
-                        res = requests.get(img_url, timeout=6)
-                        img_obj = Image.open(io.BytesIO(res.content)).convert('RGB')
-                    except Exception:
-                        img_obj = Image.new('RGB', (vw, vh), color=(10, 15, 30))
-
-                    bg_clip = ImageClip(np.array(img_obj)).set_duration(dur).resize(lambda t: 1 + 0.03 * (t / dur))
-
-                    # كتابة النص
-                    txt_img = Image.new('RGBA', (vw, vh), (0, 0, 0, 0))
-                    draw = ImageDraw.Draw(txt_img)
-                    reshaped = arabic_reshaper.reshape(line)
-                    disp_text = get_display(reshaped)
+                    # تحويل الصورة إلى Mpy Clip ثابت بأبعاد مضبوطة يمنع الشاشة السوداء
+                    bg_clip = ImageClip(np.array(img_obj)).set_duration(dur)
                     
-                    font_size = int(vh * 0.038)
-                    try: font = ImageFont.truetype("DejaVuSans.ttf", font_size)
-                    except Exception: font = ImageFont.load_default()
-                    
-                    cx, cy = vw // 2, int(vh * 0.78)
-                    bbox = draw.multiline_textbbox((cx, cy), disp_text, font=font, anchor="mm", align="center")
-                    draw.rounded_rectangle([bbox[0]-20, bbox[1]-10, bbox[2]+20, bbox[3]+10], radius=14, fill=(5, 8, 18, 220), outline=(212, 175, 55, 180), width=2)
-                    draw.multiline_text((cx, cy), disp_text, font=font, fill=(255, 235, 59, 255), anchor="mm", align="center")
+                    # 3. كتابة النص باللغة العربية بدقة عالية
+                    sub_np = create_subtitle_frame(line, vw, vh)
+                    sub_clip = ImageClip(sub_np).set_duration(dur)
 
-                    sub_clip = ImageClip(np.array(txt_img)).set_duration(dur)
-                    scene = CompositeVideoClip([bg_clip, sub_clip]).set_audio(aclip)
+                    # 4. دمج الطبقات بحجم شاشة دقيق (size=(vw, vh))
+                    scene = CompositeVideoClip([bg_clip, sub_clip], size=(vw, vh)).set_audio(aclip)
                     sub_clips.append(scene)
-                    pbar.progress(int(((i + 1) / len(lines)) * 85))
+                    
+                    pbar.progress(int(((i + 1) / total) * 80))
 
-                status_box.markdown("**⚡ Phase 3: تجميع المقطع وتصدير الفيديو...**")
-                final_v = concatenate_videoclips(sub_clips)
-                out_v = "final_generated_video.mp4"
-                final_v.write_videofile(out_v, fps=24, codec='libx264', audio_codec='aac')
+                status.markdown("**⚡ Phase 3: تجميع مقاطع المشاهد وإخراج الفيديو بدقة 30 FPS...**")
+                
+                # دمج كافة المقاطع وتحديد معدل الإطارات لتجنب أي تذبذب
+                final_video = concatenate_videoclips(sub_clips, method="compose")
+                out_path = "lumina_masterpiece_v7.mp4"
+                
+                final_video.write_videofile(
+                    out_path, 
+                    fps=30, 
+                    codec='libx264', 
+                    audio_codec='aac',
+                    preset='ultrafast'
+                )
                 
                 pbar.progress(100)
-                status_box.empty()
+                status.empty()
                 st.balloons()
-                st.success("🎉 تم إنتاج الفيديو بنجاح!")
-                st.video(out_v)
+                st.success("🎉 تم إنتاج الفيديو السينمائي بنجاح وبأقصى جودة!")
+                st.video(out_path)
 
+                # تنظيف الملفات المؤقتة
                 for c in audio_clips: c.close()
-                for f in temp_files: 
+                for f in temp_files:
                     if os.path.exists(f): os.remove(f)
 
             except Exception as e:
-                st.error(f"حدث خطأ أثناء معالجة الفيديو: {str(e)}")
+                st.error(f"حدث خطأ أثناء المعالجة: {str(e)}")
 
-# ---------------------------------------------------------
-# TAB 2: استوديو توليد الصور بالذكاء الاصطناعي
-# ---------------------------------------------------------
-with tab_image:
-    st.subheader("🎨 استوديو توليد الصور الفائقة الدقة (AI Image Studio)")
-    img_col1, img_col2 = st.columns([2, 1])
+# 2. قسم معرض الفيديوهات الإشهارية النماذج
+with tab_gallery:
+    st.subheader("📺 معرض الفيديوهات الإشهارية وتجارب الموقع الجاهزة:")
+    st.write("استعرض نماذج للفيديوهات والقصص التي تم إنتاجها بالكامل عبر منصة LUMINA AI:")
     
-    with img_col1:
-        img_prompt = st.text_area("✍️ وصف الصورة التي تتخيلها (Prompt):", "قصر ذهبي ساحر فوق السحاب في وقت الغروب مع تنين أسطوري")
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+        st.markdown("##### 🎬 نموذج فيديو وثائقي رعب (9:16 TikTok)")
+        st.info("💡 تم توليده باستخدام صوت 'حمزة' مع نمط صور الرعب الداكنة.")
+    with col_g2:
+        st.markdown("##### 🏛️ نموذج فيديو تاريخي (16:9 YouTube)")
+        st.info("💡 تم توليده بصوت 'شاكر الوثائقي' ونمط الصور الزيتية.")
+
+# 3. قسم صور الذكاء الاصطناعي
+with tab_images:
+    st.subheader("🎨 مولد الصور السينمائية فائقة الدقة")
+    prompt_in = st.text_area("أدخل الوصف باللغة العربية أو الإنجليزية:", "تنين أسطوري ذهبي يطير فوق قلعة كلاسيكية في وقت الغروب")
+    if st.button("✨ توليد الصورة الآن"):
+        if prompt_in:
+            with st.spinner("جاري الرسم والتوليد..."):
+                gen_img = fetch_solid_ai_image(prompt_in, 1024, 1024, np.random.randint(1, 9999))
+                st.image(gen_img, caption="الصورة المولدة", use_column_width=True)
+
+# 4. قسم تحويل النص لصوت
+with tab_audio:
+    st.subheader("🎙️ تحويل النص إلى صوت بشري احترافي")
+    text_in = st.text_area("النص المطلوب نطقة:", "أهلاً بكم في موقعنا الاحترافي لإنتاج الفيديوهات بالذكاء الاصطناعي")
+    v_sel = st.selectbox("اختر الصوت:", list(ARABIC_VOICES.keys()), key="aud_tab")
     
-    with img_col2:
-        img_style = st.selectbox("🎨 نمط الصورة (Style):", [
-            "🎬 Cinematic Photorealistic (واقعي سينمائي)", 
-            "🎨 3D Pixar Animation (أنيميشن كرتون)", 
-            "🔮 Cyberpunk Neon (مستقبلي نيون)", 
-            "📜 Oil Painting (لوحة زيتية كلاسيكية)"
-        ])
-        img_dim = st.selectbox("📐 أبعاد الصورة:", ["Square 1:1 (1024x1024)", "Portrait 9:16 (720x1280)", "Landscape 16:9 (1280x720)"])
-
-    if "1:1" in img_dim: iw, ih = 1024, 1024
-    elif "9:16" in img_dim: iw, ih = 720, 1280
-    else: iw, ih = 1280, 720
-
-    if st.button("✨ توليد الصورة الآن بالذكاء الاصطناعي"):
-        if not img_prompt.strip():
-            st.error("يرجى كتابة وصف الصورة أولاً!")
-        else:
-            with st.spinner("🎨 جاري رسم وتوليد الصورة بدقة عالية..."):
-                full_p = f"{img_style}, {img_prompt}, highly detailed, 8k resolution"
-                enc_p = urllib.parse.quote(full_p)
-                ai_img_url = f"https://image.pollinations.ai/prompt/{enc_p}?width={iw}&height={ih}&seed={np.random.randint(1000, 99999)}&nologo=true"
-                
-                try:
-                    res = requests.get(ai_img_url, timeout=10)
-                    if res.status_code == 200:
-                        gen_img = Image.open(io.BytesIO(res.content))
-                        st.image(gen_img, caption="الصورة المولدة بالذكاء الاصطناعي", use_column_width=True)
-                        
-                        # زر تحميل الصورة
-                        buf = io.BytesIO()
-                        gen_img.save(buf, format="PNG")
-                        st.download_button(
-                            label="📥 تنزيل الصورة بجودة عالية (PNG)",
-                            data=buf.getvalue(),
-                            file_name="lumina_ai_image.png",
-                            mime="image/png"
-                        )
-                except Exception as e:
-                    st.error(f"تعذر توليد الصورة: {str(e)}")
-
-# ---------------------------------------------------------
-# TAB 3: استوديو الأصوات والأوصاف الصوتية
-# ---------------------------------------------------------
-with tab_voice:
-    st.subheader("🎙️ استوديو توليد الأصوات العربية والبشرية (Text To Speech)")
-    v_text = st.text_area("أدخل النص المراد تحويله إلى صوت بشري احترافي:", "مرحباً بكم في منصة لومينا للذكاء الاصطناعي. يمكنكم الآن إنشاء أجمل الأصوات والفيديوهات بضغطة زر واحدة!")
-    
-    col_v1, col_v2 = st.columns(2)
-    with col_v1:
-        voice_choice_label = st.selectbox("اختر صوت الراوي المطلوب:", list(ARABIC_VOICES.keys()))
-        voice_choice_id = ARABIC_VOICES[voice_choice_label]
-    
-    with col_v2:
-        voice_speed = st.select_slider("⚡ سرعة الصوت:", options=["-20%", "0%", "+20%"], value="0%")
-
-    if st.button("🔊 تحويل النص إلى صوت بشري"):
-        if not v_text.strip():
-            st.error("يرجى كتابة النص أولاً!")
-        else:
-            with st.spinner("🎙️ جاري توليد وتدقيق الصوت البشري..."):
-                out_audio = "generated_voice.mp3"
-                try:
-                    asyncio.run(edge_tts.Communicate(v_text, voice_choice_id, rate=voice_speed).save(out_audio))
-                    st.audio(out_audio)
-                    
-                    with open(out_audio, "rb") as f:
-                        st.download_button(
-                            label="📥 تحميل الملف الصوتي (MP3)",
-                            data=f,
-                            file_name="lumina_speech.mp3",
-                            mime="audio/mp3"
-                        )
-                except Exception as e:
-                    st.error(f"خطأ في توليد الصوت: {str(e)}")
-
-# ---------------------------------------------------------
-# TAB 4: استوديو السكريبتات والأوصاف (SEO Generator)
-# ---------------------------------------------------------
-with tab_script:
-    st.subheader("✍️ مولد الأوصاف والسكريبتات وعناوين الـ Viral")
-    sc_topic = st.text_input("أدخل موضوع المقطع أو الفيديو:", "كيف تبني مشروعك الخاص بالذكاء الاصطناعي في 2026")
-    sc_target = st.selectbox("نوع المحتوى المطلوب:", ["وصف كامل مع هاشتاقات لـ TikTok & Reels", "سكريبت مقطع قصير (Hook + Story)", "عناوين جذابة للضغط (Viral Titles)"])
-    
-    if st.button("🧠 توليد الأوصاف والسكريبت بالذكاء الاصطناعي"):
-        if not sc_topic.strip():
-            st.error("أدخل موضوعاً أولاً!")
-        else:
-            with st.spinner("جاري التوليد والتحليل..."):
-                if HAS_OPENAI and openai_key:
-                    try:
-                        client = openai.OpenAI(api_key=openai_key)
-                        res = client.chat.completions.create(
-                            model="gpt-3.5-turbo",
-                            messages=[{"role": "user", "content": f"اكتب {sc_target} حول الموضوع: {sc_topic} بأسلوب جذاب جداً وجديد."}]
-                        )
-                        result_text = res.choices[0].message.content
-                    except Exception:
-                        result_text = None
-                else:
-                    result_text = None
-
-                if not result_text:
-                    result_text = f"""🔥 **{sc_target} المولد الذكي:**
-
-📌 **العنوان الجذاب:** {sc_topic} - السر الذي لا يريد أحد أن تعرفه!
-
-📝 **الوصف:**
-هل تساءلت يوماً عن أسرار {sc_topic}؟ في هذا المقطع السريع نكتشف معاً أهم الخطوات والحلول الذكية التي تهمك! شاهد الفيديو للنهاية ولاتنسى المتابعة والإعجاب للحصول على المزيد.
-
-🏷️ **الهاشتاقات الأكثر انتشاراً:**
-#{sc_topic.replace(' ', '_')} #ذكاء_اصطناعي #تطوير_الذات #Viral #Explore #Reels #TikTok
-"""
-                st.text_area("المخرجات الاحترافية (جاهزة للنسخ):", value=result_text, height=280)
+    if st.button("🔊 استخراج الملف الصوتي"):
+        if text_in:
+            out_aud = "speech.mp3"
+            asyncio.run(edge_tts.Communicate(text_in, ARABIC_VOICES[v_sel]).save(out_aud))
+            st.audio(out_aud)
